@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.8)
-project("llama.cpp")
+project("alpaca.cpp")
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED true)
@@ -104,8 +104,8 @@ endif()
 #     set(LLAMA_EXTRA_FLAGS ${LLAMA_EXTRA_FLAGS} -DGGML_PERF)
 # endif()
 
-add_executable(llama
-    main.cpp
+add_executable(alpaca
+    chat.cpp
     utils.cpp
     utils.h)
 
