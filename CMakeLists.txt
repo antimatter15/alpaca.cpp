@@ -105,7 +105,7 @@ endif()
 # endif()
 
 add_executable(llama
-    main.cpp
+    chat.cpp
     utils.cpp
     utils.h)
 
