@@ -70,7 +70,7 @@ wget -c https://cloudflare-ipfs.com/ipfs/QmQqMtqc7224HqAsv7t4CybWFHH6bJ2nmqUc8cU
 ipfs get QmQqMtqc7224HqAsv7t4CybWFHH6bJ2nmqUc8cU4WoD1Df/ggml-alpaca-13b-q4.bin
 ```
 
-```
+```sh
 ./chat -m ggml-alpaca-13b-q4.bin
 ```
 
