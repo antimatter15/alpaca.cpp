@@ -23,11 +23,12 @@ You can download the weights for `ggml-alpaca-7b-q4.bin` with BitTorrent `magnet
 
 Alternatively you can download them with IPFS.
 
-```
+```sh
 # any of these will work
-curl -o ggml-alpaca-7b-q4.bin -C - https://gateway.estuary.tech/gw/ipfs/QmQ1bf2BTnYxq73MFJWu1B7bQ2UD6qG7D7YDCxhTndVkPC
-curl -o ggml-alpaca-7b-q4.bin -C - https://ipfs.io/ipfs/QmQ1bf2BTnYxq73MFJWu1B7bQ2UD6qG7D7YDCxhTndVkPC
-curl -o ggml-alpaca-7b-q4.bin -C - https://cloudflare-ipfs.com/ipfs/QmQ1bf2BTnYxq73MFJWu1B7bQ2UD6qG7D7YDCxhTndVkPC
+curl -o ggml-alpaca-7b-q4.bin -C - https://gateway.estuary.tech/gw/ipfs/QmR1PH2ZF313jxmK8ZGcG6XBNpvk7geRt3R1oAeTx2u1ks/ggml-alpaca-7b-q4.bin
+curl -o ggml-alpaca-7b-q4.bin -C - https://ipfs.io/ipfs/QmR1PH2ZF313jxmK8ZGcG6XBNpvk7geRt3R1oAeTx2u1ks/ggml-alpaca-7b-q4.bin
+curl -o ggml-alpaca-7b-q4.bin -C - https://cloudflare-ipfs.com/ipfs/QmR1PH2ZF313jxmK8ZGcG6XBNpvk7geRt3R1oAeTx2u1ks/ggml-alpaca-7b-q4.bin
+ipfs get QmR1PH2ZF313jxmK8ZGcG6XBNpvk7geRt3R1oAeTx2u1ks/ggml-alpaca-7b-q4.bin
 ```
 
 Save the `ggml-alpaca-7b-q4.bin` file in the same directory as your `./chat` executable. 
