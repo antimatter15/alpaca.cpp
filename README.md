@@ -64,9 +64,9 @@ Torrent: `magnet:?xt=urn:btih:053b3d54d2e77ff020ebddf51dad681f2a651071&dn=ggml-a
 
 ```sh
 # any of these will work
-wget -c https://gateway.estuary.tech/gw/ipfs/QmQqMtqc7224HqAsv7t4CybWFHH6bJ2nmqUc8cU4WoD1Df/ggml-alpaca-13b-q4.bin
-wget -c https://ipfs.io/ipfs/QmQqMtqc7224HqAsv7t4CybWFHH6bJ2nmqUc8cU4WoD1Df/ggml-alpaca-13b-q4.bin
-wget -c https://cloudflare-ipfs.com/ipfs/QmQqMtqc7224HqAsv7t4CybWFHH6bJ2nmqUc8cU4WoD1Df/ggml-alpaca-13b-q4.bin
+curl -o ggml-alpaca-13b-q4.bin -C - https://gateway.estuary.tech/gw/ipfs/QmQqMtqc7224HqAsv7t4CybWFHH6bJ2nmqUc8cU4WoD1Df/ggml-alpaca-13b-q4.bin
+curl -o ggml-alpaca-13b-q4.bin -C - https://ipfs.io/ipfs/QmQqMtqc7224HqAsv7t4CybWFHH6bJ2nmqUc8cU4WoD1Df/ggml-alpaca-13b-q4.bin
+curl -o ggml-alpaca-13b-q4.bin -C - https://cloudflare-ipfs.com/ipfs/QmQqMtqc7224HqAsv7t4CybWFHH6bJ2nmqUc8cU4WoD1Df/ggml-alpaca-13b-q4.bin
 ipfs get QmQqMtqc7224HqAsv7t4CybWFHH6bJ2nmqUc8cU4WoD1Df/ggml-alpaca-13b-q4.bin
 ```
 
