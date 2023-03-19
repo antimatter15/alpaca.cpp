@@ -8,7 +8,17 @@ Run a fast ChatGPT-like model locally on your device. The screencast below is no
 
 This combines the [LLaMA foundation model](https://github.com/facebookresearch/llama) with an [open reproduction](https://github.com/tloen/alpaca-lora) of [Stanford Alpaca](https://github.com/tatsu-lab/stanford_alpaca) a fine-tuning of the base model to obey instructions (akin to the [RLHF](https://huggingface.co/blog/rlhf) used to train ChatGPT) and a set of modifications to [llama.cpp](https://github.com/ggerganov/llama.cpp) to add a chat interface. 
 
-## Get started
+## Table of content
+1. [Quick start](#quick-start)
+1. [Windows setup](#windows-setup)
+1. [Download weights](#download-weights)
+    1. [7B](#7b)
+    1. [13B](#13b)
+1. [Fine-tune](#fine-tune)
+1. [Credit](#credit)
+1. [Disclaimer](#disclaimer)
+
+## Quick start
 
 ```sh
 git clone https://github.com/antimatter15/alpaca.cpp
@@ -18,23 +28,12 @@ make chat
 ./chat
 ```
 
-You can download the weights for `ggml-alpaca-7b-q4.bin` with BitTorrent `magnet:?xt=urn:btih:5aaceaec63b03e51a98f04fd5c42320b2a033010&dn=ggml-alpaca-7b-q4.bin&tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&tr=udp%3A%2F%2Fopentracker.i2p.rocks%3A6969%2Fannounce`
+To download the weights, please refer to the section [Download Weights](#download-weights). Once downloaded, save the `ggml-alpaca-7b-q4.bin` or `ggml-alpaca-13b-q4.bin` file in the same directory as your `./chat` executable.
 
+- To use `ggml-alpaca-7b-q4.bin`, enter `./chat` into the command line. 
+- To use `ggml-alpaca-13b-q4.bin`, enter `./chat -m ggml-alpaca-13b-q4.bin` instead.
 
-Alternatively you can download them with IPFS.
-
-```
-# any of these will work
-curl -o ggml-alpaca-7b-q4.bin -C - https://gateway.estuary.tech/gw/ipfs/QmQ1bf2BTnYxq73MFJWu1B7bQ2UD6qG7D7YDCxhTndVkPC
-curl -o ggml-alpaca-7b-q4.bin -C - https://ipfs.io/ipfs/QmQ1bf2BTnYxq73MFJWu1B7bQ2UD6qG7D7YDCxhTndVkPC
-curl -o ggml-alpaca-7b-q4.bin -C - https://cloudflare-ipfs.com/ipfs/QmQ1bf2BTnYxq73MFJWu1B7bQ2UD6qG7D7YDCxhTndVkPC
-```
-
-Save the `ggml-alpaca-7b-q4.bin` file in the same directory as your `./chat` executable. 
-
-The weights are based on the published fine-tunes from `alpaca-lora`, converted back into a pytorch checkpoint with a [modified script](https://github.com/tloen/alpaca-lora/pull/19) and then quantized with llama.cpp the regular way. 
-
-## Windows Setup
+## Windows setup
 
 - Download and install CMake: <https://cmake.org/download/>
 - Download and install `git`. If you've never used git before, consider a GUI client like <https://desktop.github.com/>
@@ -47,7 +46,7 @@ cmake .
 cmake --build . --config Release
 ```
 
-- Download the weights via any of the links in "Get started" above, and save the file as `ggml-alpaca-7b-q4.bin` in the main Alpaca directory.
+- Download the weights via any of the links in "Quick start" above, and save the file as `ggml-alpaca-7b-q4.bin` in the main Alpaca directory.
 - In the terminal window, run this command:
 ```ps1
 .\Release\chat.exe
@@ -55,16 +54,41 @@ cmake --build . --config Release
 - (You can add other launch options like `--n 8` as preferred onto the same line)
 - You can now type to the AI in the terminal and it will reply. Enjoy!
 
-## 13B
+## Download weights
+
+### 7B
+
+You can download the weights for `ggml-alpaca-7b-q4.bin` with BitTorrent:
+
+`magnet:?xt=urn:btih:5aaceaec63b03e51a98f04fd5c42320b2a033010&dn=ggml-alpaca-7b-q4.bin&tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&tr=udp%3A%2F%2Fopentracker.i2p.rocks%3A6969%2Fannounce`
+
+
+Alternatively you can download them with IPFS.
+
+```
+# any of these will work
+curl -o ggml-alpaca-7b-q4.bin -C - https://gateway.estuary.tech/gw/ipfs/QmQ1bf2BTnYxq73MFJWu1B7bQ2UD6qG7D7YDCxhTndVkPC
+curl -o ggml-alpaca-7b-q4.bin -C - https://ipfs.io/ipfs/QmQ1bf2BTnYxq73MFJWu1B7bQ2UD6qG7D7YDCxhTndVkPC
+curl -o ggml-alpaca-7b-q4.bin -C - https://cloudflare-ipfs.com/ipfs/QmQ1bf2BTnYxq73MFJWu1B7bQ2UD6qG7D7YDCxhTndVkPC
+```
+
+### 13B
 
 TODO: write more docs here (PRs welcome)
 
-Torrent: `magnet:?xt=urn:btih:053b3d54d2e77ff020ebddf51dad681f2a651071&dn=ggml-alpaca-13b-q4.bin&tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&tr=udp%3A%2F%2Fopentracker.i2p.rocks%3A6969%2Fannounce&tr=udp%3A%2F%2Ftracker.openbittorrent.com%3A6969%2Fannounce&tr=udp%3A%2F%2F9.rarbg.com%3A2810%2Fannounce`
+
+You can download the weights for `ggml-alpaca-13b-q4.bin` with BitTorrent:
+
+`magnet:?xt=urn:btih:053b3d54d2e77ff020ebddf51dad681f2a651071&dn=ggml-alpaca-13b-q4.bin&tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&tr=udp%3A%2F%2Fopentracker.i2p.rocks%3A6969%2Fannounce&tr=udp%3A%2F%2Ftracker.openbittorrent.com%3A6969%2Fannounce&tr=udp%3A%2F%2F9.rarbg.com%3A2810%2Fannounce`
 
 
 ```
 ./chat -m ggml-alpaca-13b-q4.bin
 ```
+
+## Fine-tune
+
+You are also be able to fine-tune the weights. The weights are based on the published fine-tunes from `alpaca-lora`, converted back into a pytorch checkpoint with a [modified script](https://github.com/tloen/alpaca-lora/pull/19) and then quantized with llama.cpp the regular way. 
 
 ## Credit
 
