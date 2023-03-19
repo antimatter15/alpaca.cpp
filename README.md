@@ -25,10 +25,10 @@ Alternatively you can download them with IPFS.
 
 ```sh
 # any of these will work
-curl -o ggml-alpaca-7b-q4.bin -C - https://gateway.estuary.tech/gw/ipfs/QmR1PH2ZF313jxmK8ZGcG6XBNpvk7geRt3R1oAeTx2u1ks/ggml-alpaca-7b-q4.bin
-curl -o ggml-alpaca-7b-q4.bin -C - https://ipfs.io/ipfs/QmR1PH2ZF313jxmK8ZGcG6XBNpvk7geRt3R1oAeTx2u1ks/ggml-alpaca-7b-q4.bin
-curl -o ggml-alpaca-7b-q4.bin -C - https://cloudflare-ipfs.com/ipfs/QmR1PH2ZF313jxmK8ZGcG6XBNpvk7geRt3R1oAeTx2u1ks/ggml-alpaca-7b-q4.bin
-ipfs get QmR1PH2ZF313jxmK8ZGcG6XBNpvk7geRt3R1oAeTx2u1ks/ggml-alpaca-7b-q4.bin
+curl -o ggml-alpaca-7b-q4.bin -C - https://gateway.estuary.tech/gw/ipfs/QmZciQDVrWa1JdzT7oD3USGbhNKn3QaSND9kC2XTqZnPJ9/ggml-alpaca-7b-q4.bin
+curl -o ggml-alpaca-7b-q4.bin -C - https://ipfs.io/ipfs/QmZciQDVrWa1JdzT7oD3USGbhNKn3QaSND9kC2XTqZnPJ9/ggml-alpaca-7b-q4.bin
+curl -o ggml-alpaca-7b-q4.bin -C - https://cloudflare-ipfs.com/ipfs/QmZciQDVrWa1JdzT7oD3USGbhNKn3QaSND9kC2XTqZnPJ9/ggml-alpaca-7b-q4.bin
+ipfs get QmZciQDVrWa1JdzT7oD3USGbhNKn3QaSND9kC2XTqZnPJ9/ggml-alpaca-7b-q4.bin
 ```
 
 Save the `ggml-alpaca-7b-q4.bin` file in the same directory as your `./chat` executable. 
@@ -64,10 +64,10 @@ Torrent: `magnet:?xt=urn:btih:053b3d54d2e77ff020ebddf51dad681f2a651071&dn=ggml-a
 
 ```sh
 # any of these will work
-curl -o ggml-alpaca-13b-q4.bin -C - https://gateway.estuary.tech/gw/ipfs/QmQqMtqc7224HqAsv7t4CybWFHH6bJ2nmqUc8cU4WoD1Df/ggml-alpaca-13b-q4.bin
-curl -o ggml-alpaca-13b-q4.bin -C - https://ipfs.io/ipfs/QmQqMtqc7224HqAsv7t4CybWFHH6bJ2nmqUc8cU4WoD1Df/ggml-alpaca-13b-q4.bin
-curl -o ggml-alpaca-13b-q4.bin -C - https://cloudflare-ipfs.com/ipfs/QmQqMtqc7224HqAsv7t4CybWFHH6bJ2nmqUc8cU4WoD1Df/ggml-alpaca-13b-q4.bin
-ipfs get QmQqMtqc7224HqAsv7t4CybWFHH6bJ2nmqUc8cU4WoD1Df/ggml-alpaca-13b-q4.bin
+curl -o ggml-alpaca-13b-q4.bin -C - https://gateway.estuary.tech/gw/ipfs/QmZciQDVrWa1JdzT7oD3USGbhNKn3QaSND9kC2XTqZnPJ9/ggml-alpaca-13b-q4.bin
+curl -o ggml-alpaca-13b-q4.bin -C - https://ipfs.io/ipfs/QmZciQDVrWa1JdzT7oD3USGbhNKn3QaSND9kC2XTqZnPJ9/ggml-alpaca-13b-q4.bin
+curl -o ggml-alpaca-13b-q4.bin -C - https://cloudflare-ipfs.com/ipfs/QmZciQDVrWa1JdzT7oD3USGbhNKn3QaSND9kC2XTqZnPJ9/ggml-alpaca-13b-q4.bin
+ipfs get QmZciQDVrWa1JdzT7oD3USGbhNKn3QaSND9kC2XTqZnPJ9/ggml-alpaca-13b-q4.bin
 ```
 
 ```sh
