@@ -1412,10 +1412,68 @@ inline static void ggml_vec_dot_q4_0(const int n, float * restrict s, const void
 #else
 #error "not implemented for QK"
 #endif
+#elif defined(__AVX512F__)
+
+inline __m256i bytesFromNibbles( const uint8_t* rsi ){
+    // Load 16 bytes from memory
+    __m128i tmp = _mm_loadu_si128( ( const __m128i* )rsi );
+
+    // Expand bytes into uint16_t values
+    __m256i bytes = _mm256_cvtepu8_epi16( tmp );
+
+    // Unpack values into individual bytes
+    const __m256i lowMask = _mm256_set1_epi8( 0xF );
+    __m256i high = _mm256_andnot_si256( lowMask, bytes );
+    __m256i low = _mm256_and_si256( lowMask, bytes );
+    high = _mm256_slli_epi16( high, 4 );
+    bytes = _mm256_or_si256( low, high );
+    return bytes;
+}
+
+#if QK == 32
+    // Initialize accumulator with zeros
+    __m512 acc = _mm512_setzero_ps();
+
+    // Main loop
+    for (int i = 0; i < nb; ++i) {
+        const float * d0_0 = (const float *) (pd0 + i*bs);
+        const float * d1_0 = (const float *) (pd1 + i*bs);
+
+        const uint8_t * restrict p0 = pb0 + i*bs;
+        const uint8_t * restrict p1 = pb1 + i*bs;
+
+        // Compute combined scale for the block
+        float scaleScalar = d0_0[0] * d1_0[0];
+        __m512 scale = _mm512_set1_ps( scaleScalar );
+
+        // Load 16 bytes, and unpack 4 bit fields into bytes, making 32 bytes
+        __m256i bx = bytesFromNibbles( p0 );
+        __m256i by = bytesFromNibbles( p1 );
+
+        // Now we have a vector with bytes in [ 0 .. 15 ] interval. Offset them into [ -8 .. +7 ] interval.
+        const __m256i off = _mm256_set1_epi8( 8 );
+        bx = _mm256_sub_epi8( bx, off );
+        by = _mm256_sub_epi8( by, off );
+
+        // Sign-extend 16 signed bytes into int16_t
+        __m512i x32 = _mm512_cvtepi8_epi16( bx );
+        __m512i y32 = _mm512_cvtepi8_epi16( by );
+        // Compute products of int16_t integers, add pairwise
+        __m512i i64 = _mm512_madd_epi16( x32, y32 );
+
+        // Convert int32_t to float
+        __m512 p = _mm512_cvtepi32_ps( i64 );
+        // Apply the scale, and accumulate
+        acc = _mm512_fmadd_ps( scale, p, acc );
+    }
+
+    // Horizontal sum of all lanes of the accumulator
+    sumf = _mm512_reduce_add_ps( acc );
+#else
+#error "not implemented for QK"
+#endif
 #elif defined(__AVX2__)
 #if QK == 32
-    const size_t countBlocks = nb;
-
     // Initialize accumulator with zeros
     __m256 acc = _mm256_setzero_ps();
 
@@ -5485,7 +5543,7 @@ static void ggml_compute_forward_rms_norm_f32(
                 mean /= ne00;
 
                 float * y = (float *) ((char *) dst->data + i01*nb1 + i02*nb2 + i03*nb3);
-                
+
                 memcpy(y, x, ne00 * sizeof(float));
                 // for (int i00 = 0; i00 < ne00; i00++) {
                 //     y[i00] = x[i00];
