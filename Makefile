@@ -115,6 +115,18 @@ ifeq ($(UNAME_M),$(filter $(UNAME_M),x86_64 i686))
 		ifneq (,$(findstring avx512cd,$(AVX512CD_M)))
 			CFLAGS += -mavx512cd
 		endif
+		AVX512ER_M := $(shell grep "avx512er " /proc/cpuinfo)
+		ifneq (,$(findstring avx512er,$(AVX512ER_M)))
+			CFLAGS += -mavx512er
+		endif
+		AVX512IFMA_M := $(shell grep "avx512ifma " /proc/cpuinfo)
+		ifneq (,$(findstring avx512ifma,$(AVX512IFMA_M)))
+			CFLAGS += -mavx512ifma
+		endif
+		AVX512PF_M := $(shell grep "avx512pf " /proc/cpuinfo)
+		ifneq (,$(findstring avx512pf,$(AVX512PF_M)))
+			CFLAGS += -mavx512pf
+		endif
 	else ifeq ($(UNAME_S),Haiku)
 		AVX1_M := $(shell sysinfo -cpu | grep "AVX ")
 		ifneq (,$(findstring avx,$(AVX1_M)))
