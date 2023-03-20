@@ -35,7 +35,6 @@ CXXFLAGS = -I. -I./examples -O3 -DNDEBUG -std=c++11 -fPIC
 LDFLAGS  =
 
 # OS specific
-# TODO: support Windows
 ifeq ($(UNAME_S),Linux)
 	CFLAGS   += -pthread
 	CXXFLAGS += -pthread
@@ -56,6 +55,11 @@ ifeq ($(UNAME_S),Haiku)
 	CFLAGS   += -pthread
 	CXXFLAGS += -pthread
 endif
+ifeq ($(findstring MINGW, $(UNAME_S)),MINGW)
+	CFLAGS   += -pthread
+	CXXFLAGS += -pthread
+	LDFLAGS  += -static
+endif
 
 # Architecture specific
 # TODO: probably these flags need to be tweaked on some architectures
@@ -74,7 +78,7 @@ ifeq ($(UNAME_M),$(filter $(UNAME_M),x86_64 i686))
 		ifneq (,$(findstring AVX2,$(AVX2_M)))
 			CFLAGS += -mavx2
 		endif
-	else ifeq ($(UNAME_S),Linux)
+	else ifneq ($(filter Linux MINGW%, $(UNAME_S)),)
 		AVX1_M := $(shell grep "avx " /proc/cpuinfo)
 		ifneq (,$(findstring avx,$(AVX1_M)))
 			CFLAGS += -mavx
