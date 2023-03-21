@@ -866,7 +866,6 @@ int main(int argc, char ** argv) {
         embd_inp.insert(embd_inp.end(), prompt_inp.begin(), prompt_inp.end());
         embd_inp.insert(embd_inp.end(), param_inp.begin(), param_inp.end());
         embd_inp.insert(embd_inp.end(), response_inp.begin(), response_inp.end());
-
     }
 
     // fprintf(stderr, "\n");
