@@ -1075,9 +1075,14 @@ int main(int argc, char ** argv) {
 
         // end of text token
         if (embd.back() == 2) {
-            // fprintf(stderr, " [end of text]\n");
-            is_interacting = true;
-            continue;
+            if (params.interactive) {
+                is_interacting = true;
+                continue;
+            } else {
+                printf("\n");
+                fprintf(stderr, " [end of text]\n");
+                break;
+            }
         }
     }
 
