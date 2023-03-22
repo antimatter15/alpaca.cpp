@@ -49,6 +49,13 @@ Once you've downloaded the weights, you can run the following command to enter c
 
 If you have more than 32GB of RAM (and a beefy CPU), you can use the higher quality 30B `alpaca-30B-ggml.bin` model. To download the weights, you can use
 
+require git LFS installed
+
+windows ```winget install -e --id GitHub.GitLFS```
+
+linux ```sudo apt-get install git-lfs```
+
+
 ```
 git clone https://huggingface.co/Pi3141/alpaca-30B-ggml
 ```
