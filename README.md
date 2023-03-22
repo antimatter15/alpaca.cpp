@@ -59,6 +59,19 @@ Once you've downloaded the weights, you can run the following command to enter c
 ./chat -m ggml-model-q4_0.bin
 ```
 
+### SHA256 Model Checksums
+
+
+To make sure you've downloaded an authentic and unaltered file, we've provided the hash checksums for each model below. Simply compare the checksum of your downloaded model with the one listed here for that specific model. This will guarantee that your file is legitimate and has not been tampered with.
+
+```sh
+# unix command to calculate SHA256 checksum
+# sha256sum path/to/model
+
+1f582babc2bd56bb63b33141898748657d369fd110c4358b2bc280907882bf13  ggml-alpaca-7b-q4.bin
+e17730c6b62b565b098af023ca446dcb9e3535d4222ead6369c7aae67207eb3d  ggml-alpaca-13b-q4.bin
+9bcd1bb30e679c939f367be11b030fe20b3eb9a3606b9bc4106420f1827b6ae4  ggml-alpaca-30b-q4.bin
+```
 
 ## Building from Source (MacOS/Linux)
 
