@@ -1,7 +1,5 @@
 #include "ggml.h"
-
 #include "utils.h"
-
 #include <cassert>
 #include <cmath>
 #include <cstdio>
@@ -561,12 +559,18 @@ bool llama_eval(
 
         // reallocate
         buf_size = buf_size_new;
-        buf = realloc(buf, buf_size);
-        if (buf == nullptr) {
-            fprintf(stderr, "%s: failed to allocate %zu bytes\n", __func__, buf_size);
-            return false;
+        
+         void * tmp = realloc(buf, buf_size);
+         if (NULL == tmp)
+        {
+          fprintf(stderr, "%s: failed to allocate %zu bytes\n", __func__, buf_size);
+          return false;
         }
-    }
+         else
+        {
+         buf = tmp;
+        } 
+   }
 
     struct ggml_init_params params = {
         /*.mem_size   =*/ buf_size,
