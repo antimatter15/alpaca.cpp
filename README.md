@@ -44,6 +44,16 @@ Once you've downloaded the weights, you can run the following command to enter c
 ```
 ./chat -m ggml-alpaca-13b-q4.bin
 ```
+---
+Alternatively, you can also download from Huggingface
+```
+git clone https://huggingface.co/Pi3141/alpaca-13B-ggml
+```
+
+Once you've downloaded the weights, you can run the following command to enter chat
+```
+./chat -m ggml-model-q4_0.bin
+```
 
 ## Getting Started (30B)
 
