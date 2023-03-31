@@ -8,6 +8,10 @@ Access the custom API by making POST requests to localhost:8000/query. A sample 
 
 ## Get started
 
+Get the dependencies:
+https://github.com/yhirose/cpp-httplib/
+https://github.com/nlohmann/json/
+
 ```sh
 git clone https://github.com/innermost47/alpacaLLama
 cd alpacaLLama
