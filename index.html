@@ -12,7 +12,7 @@
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
-    <div class="container mt-3 pb-3">
+    <div class="container mt-3">
       <h1 class="mb-4">
         <img src="logo.svg" alt="logo" class="logo" /> AlpacaLLama
       </h1>
@@ -62,6 +62,18 @@
               </div>
             </div>
           </div>
+          <div class="col-md-6">
+            <div class="mb-3 card shadow p-3" id="response-container">
+              <div class="chat-container mb-3">
+                <ul class="chat-messages" id="chat-messages"></ul>
+              </div>
+              <div>
+                <div id="clear-conversation" class="btn btn-danger w-auto">
+                  Clear Conversation
+                </div>
+              </div>
+            </div>
+          </div>
           <div class="col-md-4">
             <div class="card shadow p-3 mb-3">
               <div class="mb-3">
@@ -106,16 +118,6 @@
                   Submit
                 </button>
               </div>
-            </div>
-          </div>
-          <div class="col-md-6">
-            <div class="mb-3 card shadow p-3" id="response-container">
-              <div class="chat-container mb-3">
-                <ul class="chat-messages" id="chat-messages"></ul>
-              </div>
-                <div>
-                  <div id="clear-conversation" class="btn btn-danger w-auto">Clear Conversation</div>
-                </div>
             </div>
           </div>
         </div>

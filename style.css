@@ -32,8 +32,20 @@
 }
 
 .response-message {
-  background-color: #1300FF;
+  background-color: #1300ff;
   color: #ffffff;
   float: left;
   clear: both;
+}
+
+.delete-button {
+  background-color: transparent;
+  border: none;
+  color: #fff;
+  cursor: pointer;
+  opacity: 1;
+}
+
+.chat-message:hover .delete-button {
+  opacity: 1;
 }

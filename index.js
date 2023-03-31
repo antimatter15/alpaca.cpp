@@ -19,6 +19,7 @@ function displayChatMessage(message, className, link = null) {
   const chatMessageElement = document.createElement("li");
   chatMessageElement.classList.add("chat-message", className);
   chatMessageElement.innerText = message;
+
   if (link) {
     const br = document.createElement("br");
     const sourceLink = document.createElement("a");
@@ -34,7 +35,8 @@ function displayChatMessage(message, className, link = null) {
   const chatContainer = document.querySelector(".chat-container");
   const messageRect = chatMessageElement.getBoundingClientRect();
   const containerRect = chatContainer.getBoundingClientRect();
-  const scrollTop = messageRect.bottom - containerRect.bottom + chatContainer.scrollTop;
+  const scrollTop =
+    messageRect.bottom - containerRect.bottom + chatContainer.scrollTop;
 
   // Scroll the chat container to the new message
   chatContainer.scrollTo({ top: scrollTop, behavior: "smooth" });
