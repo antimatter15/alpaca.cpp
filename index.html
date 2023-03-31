@@ -96,6 +96,16 @@
                   Search with DuckduckGo
                 </label>
               </div>
+              <div>
+                <div class="d-none" id="spinner">
+                  <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                  </div>
+                </div>
+                <button type="submit" class="btn btn-primary" id="submit">
+                  Submit
+                </button>
+              </div>
             </div>
           </div>
           <div class="col-md-6">
@@ -105,15 +115,41 @@
             ></div>
           </div>
         </div>
-        <div class="d-none" id="spinner">
-          <div class="spinner-border text-primary" role="status">
-            <span class="visually-hidden">Loading...</span>
+      </form>
+    </div>
+    <!-- Error Modal -->
+    <div
+      class="modal fade"
+      id="errorModal"
+      tabindex="-1"
+      aria-labelledby="errorModalLabel"
+      aria-hidden="true"
+    >
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="errorModalLabel">Error</h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+              aria-label="close"
+            ></button>
+          </div>
+          <div class="modal-body">
+            <p id="errorModalText"></p>
+          </div>
+          <div class="modal-footer">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              data-bs-dismiss="modal"
+            >
+              Close
+            </button>
           </div>
         </div>
-        <button type="submit" class="btn btn-primary" id="submit">
-          Submit
-        </button>
-      </form>
+      </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>

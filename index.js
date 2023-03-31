@@ -56,7 +56,14 @@ document
         document.getElementById("spinner").classList.add("d-none");
         document.getElementById("response-container").classList.add("d-none");
         document.getElementById("submit").classList.remove("d-none");
-        // Handle errors
-        alert(error);
+
+        // Set error message in the modal
+        document.getElementById("errorModalText").innerText = error;
+
+        // Show the error modal
+        const errorModal = new bootstrap.Modal(
+          document.getElementById("errorModal")
+        );
+        errorModal.show();
       });
   });
