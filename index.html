@@ -109,15 +109,18 @@
             </div>
           </div>
           <div class="col-md-6">
-            <div
-              class="mb-3 card shadow p-3 d-none"
-              id="response-container"
-            ></div>
+            <div class="mb-3 card shadow p-3" id="response-container">
+              <div class="chat-container mb-3">
+                <ul class="chat-messages" id="chat-messages"></ul>
+              </div>
+                <div>
+                  <div id="clear-conversation" class="btn btn-danger w-auto">Clear Conversation</div>
+                </div>
+            </div>
           </div>
         </div>
       </form>
     </div>
-    <!-- Error Modal -->
     <div
       class="modal fade"
       id="errorModal"
@@ -146,6 +149,44 @@
               data-bs-dismiss="modal"
             >
               Close
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div
+      class="modal fade"
+      id="confirmationModal"
+      tabindex="-1"
+      aria-labelledby="confirmationModalLabel"
+      aria-hidden="true"
+    >
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="confirmationModalLabel">
+              Confirm Deletion
+            </h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+              aria-label="Close"
+            ></button>
+          </div>
+          <div class="modal-body">
+            Are you sure you want to delete the conversation?
+          </div>
+          <div class="modal-footer">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              data-bs-dismiss="modal"
+            >
+              Cancel
+            </button>
+            <button type="button" class="btn btn-danger" id="confirm-delete">
+              Delete
             </button>
           </div>
         </div>

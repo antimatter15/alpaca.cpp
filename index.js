@@ -1,5 +1,45 @@
 const apiUrl = "http://localhost:8000/query";
 
+function saveConversation() {
+  const chatMessages = document.getElementById("chat-messages");
+  localStorage.setItem("conversation", chatMessages.innerHTML);
+}
+
+function loadConversation() {
+  const chatMessages = document.getElementById("chat-messages");
+  const storedConversation = localStorage.getItem("conversation");
+
+  if (storedConversation) {
+    chatMessages.innerHTML = storedConversation;
+  }
+}
+
+function displayChatMessage(message, className, link = null) {
+  const chatMessages = document.getElementById("chat-messages");
+  const chatMessageElement = document.createElement("li");
+  chatMessageElement.classList.add("chat-message", className);
+  chatMessageElement.innerText = message;
+  if (link) {
+    const br = document.createElement("br");
+    const sourceLink = document.createElement("a");
+    sourceLink.href = link.url;
+    sourceLink.target = "_blank";
+    sourceLink.innerText = " " + link.source;
+    sourceLink.classList.add("text-light");
+    chatMessageElement.appendChild(br);
+    chatMessageElement.appendChild(sourceLink);
+  }
+  chatMessages.appendChild(chatMessageElement);
+  // Calculate the position of the new message relative to the chat container
+  const chatContainer = document.querySelector(".chat-container");
+  const messageRect = chatMessageElement.getBoundingClientRect();
+  const containerRect = chatContainer.getBoundingClientRect();
+  const scrollTop = messageRect.bottom - containerRect.bottom + chatContainer.scrollTop;
+
+  // Scroll the chat container to the new message
+  chatContainer.scrollTo({ top: scrollTop, behavior: "smooth" });
+}
+
 document
   .getElementById("gpt-form")
   .addEventListener("submit", function (event) {
@@ -15,8 +55,9 @@ document
     const web = document.getElementById("web").checked;
 
     document.getElementById("spinner").classList.remove("d-none");
-    document.getElementById("response-container").classList.add("d-none");
     document.getElementById("submit").classList.add("d-none");
+
+    displayChatMessage(userInput, "user-message");
 
     // Send the data to the API and handle the response
     fetch(apiUrl, {
@@ -37,24 +78,19 @@ document
       .then((data) => {
         document.getElementById("submit").classList.remove("d-none");
         document.getElementById("spinner").classList.add("d-none");
-        document
-          .getElementById("response-container")
-          .classList.remove("d-none");
-        // Display the response in the response-container div
-        document.getElementById("response-container").innerHTML =
-          "<p>" +
-          data.response +
-          "</p>" +
-          "<a href=" +
-          data.url +
-          " target='_blank'>" +
-          data.source +
-          "</a>";
+        if (web) {
+          displayChatMessage(data.response, "response-message", {
+            url: data.url,
+            source: data.source,
+          });
+        } else {
+          displayChatMessage(data.response, "response-message");
+        }
+        saveConversation();
       })
       .catch((error) => {
         // Hide spinner
         document.getElementById("spinner").classList.add("d-none");
-        document.getElementById("response-container").classList.add("d-none");
         document.getElementById("submit").classList.remove("d-none");
 
         // Set error message in the modal
@@ -66,4 +102,27 @@ document
         );
         errorModal.show();
       });
+  });
+
+loadConversation();
+
+document
+  .getElementById("clear-conversation")
+  .addEventListener("click", function () {
+    const confirmationModal = new bootstrap.Modal(
+      document.getElementById("confirmationModal")
+    );
+    confirmationModal.show();
+  });
+
+document
+  .getElementById("confirm-delete")
+  .addEventListener("click", function () {
+    const chatMessages = document.getElementById("chat-messages");
+    chatMessages.innerHTML = "";
+    localStorage.removeItem("conversation");
+    const confirmationModal = bootstrap.Modal.getInstance(
+      document.getElementById("confirmationModal")
+    );
+    confirmationModal.hide();
   });
