@@ -24,16 +24,8 @@ bool gpt_params_parse(int argc, char ** argv, gpt_params & params) {
         } else if (arg == "-t" || arg == "--threads") {
             params.n_threads = std::stoi(argv[++i]);
         } else if (arg == "-p" || arg == "--prompt") {
-            params.interactive = false;
-            params.interactive_start = false;
-            params.use_color = false;
-
             params.prompt = argv[++i];
         } else if (arg == "-f" || arg == "--file") {
-
-            params.interactive = false;
-            params.interactive_start = false;
-            params.use_color = false;
 
             std::ifstream file(argv[++i]);
 
@@ -285,7 +277,6 @@ std::vector<gpt_vocab::id> gpt_tokenize(const gpt_vocab & vocab, const std::stri
 
 // TODO: Calculate this constant from the vocabulary
 #define MAX_TOKEN_LEN 18
-// SentencePiece implementation after https://guillaume-be.github.io/2020-05-30/sentence_piece
 std::vector<gpt_vocab::id> llama_tokenize(const gpt_vocab & vocab, const std::string & text, bool bos) {
     std::vector<gpt_vocab::id> res;
     std::vector<int> score;
@@ -297,8 +288,8 @@ std::vector<gpt_vocab::id> llama_tokenize(const gpt_vocab & vocab, const std::st
 
     // Forward pass
     for (int i = 0; i < len; i++) {
-        int max_len = std::min(len - i, MAX_TOKEN_LEN);
-        for (int sub_len = 1; sub_len <= len - i; sub_len++) {
+        int max_len = std::min(len - i, 30);
+        for (int sub_len = 1; sub_len <= max_len; sub_len++) {
             auto sub = text.substr(i, sub_len);
             auto token = vocab.token_to_id.find(sub);
             if (token != vocab.token_to_id.end()) {
@@ -313,29 +304,31 @@ std::vector<gpt_vocab::id> llama_tokenize(const gpt_vocab & vocab, const std::st
         }
     }
 
-    // Backward pass
     int i = len;
     while (i > 0) {
         gpt_vocab::id token_id = prev[i];
         if (token_id == 0) {
-	    // TODO: Return error or something more meaningful
-            printf("failed to tokenize string!\n");
+             printf("failed to find token\n");
 	    break;
         }
         res.push_back(token_id);
-        auto token = (*vocab.id_to_token.find(token_id)).second;
-        i -= token.length();
+        auto token = vocab.id_to_token.find(token_id);
+        if (token == vocab.id_to_token.end()) {
+            printf("failed to find token ID %d!\n", token_id);
+            break;
+        }
+        i -= (*token).second.length();
     }
 
     if (bos) {
-        res.push_back(1); // TODO: replace with vocab.bos
+        res.push_back(1);
     }
 
-    // Pieces are in reverse order so correct that
     std::reverse(res.begin(), res.end());
 
     return res;
 }
+
 
 bool gpt_vocab_init(const std::string & fname, gpt_vocab & vocab) {
     printf("%s: loading vocab from '%s'\n", __func__, fname.c_str());

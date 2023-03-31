@@ -126,3 +126,9 @@ target_link_libraries(ggml PRIVATE ${LLAMA_EXTRA_LIBS})
 target_include_directories(ggml PUBLIC .)
 target_link_libraries(quantize PRIVATE ggml)
 target_link_libraries(chat PRIVATE ggml)
+
+
+
+
+
+

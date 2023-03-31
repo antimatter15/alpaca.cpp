@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AlpacaLLama - The Adorably Imperfect AI Assistant</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link rel="shortcut icon" href="logo.svg" type="image/x-icon" />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="container mt-3 pb-3">
+      <h1 class="mb-4">
+        <img src="logo.svg" alt="logo" class="logo" /> AlpacaLLama
+      </h1>
+      <form id="gpt-form">
+        <div class="row">
+          <div class="col-md-2">
+            <div class="card shadow p-3 mb-3">
+              <div class="mb-3">
+                <label for="temperature" class="form-label">Temperature</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  class="form-control"
+                  id="temperature"
+                  name="temperature"
+                  value="0.05"
+                  required
+                />
+              </div>
+              <div class="mb-3">
+                <label for="top-p" class="form-label">Top-P</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  max="1"
+                  class="form-control"
+                  id="top-p"
+                  name="top_p"
+                  value="0.99"
+                  required
+                />
+              </div>
+              <div class="mb-3">
+                <label for="top-k" class="form-label">Top-K</label>
+                <input
+                  type="number"
+                  step="1"
+                  min="1"
+                  class="form-control"
+                  id="top-k"
+                  name="top_k"
+                  value="60"
+                  required
+                />
+              </div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="card shadow p-3 mb-3">
+              <div class="mb-3">
+                <label for="instruction" class="form-label">Instruction</label>
+                <textarea
+                  class="form-control"
+                  id="instruction"
+                  name="instruction"
+                  rows="3"
+                  required
+                ></textarea>
+              </div>
+              <div class="mb-3">
+                <label for="user-input" class="form-label">Input</label>
+                <textarea
+                  class="form-control"
+                  id="user-input"
+                  name="user_input"
+                  rows="3"
+                  required
+                ></textarea>
+              </div>
+              <div class="form-check mb-3">
+                <input
+                  class="form-check-input"
+                  type="checkbox"
+                  value=""
+                  id="web"
+                  checked
+                />
+                <label class="form-check-label" for="flexCheckChecked">
+                  Search with DuckduckGo
+                </label>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div
+              class="mb-3 card shadow p-3 d-none"
+              id="response-container"
+            ></div>
+          </div>
+        </div>
+        <div class="d-none" id="spinner">
+          <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+          </div>
+        </div>
+        <button type="submit" class="btn btn-primary" id="submit">
+          Submit
+        </button>
+      </form>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.min.js"></script>
+    <script src="index.js"></script>
+  </body>
+</html>

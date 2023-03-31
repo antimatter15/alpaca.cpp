@@ -1,7 +1,5 @@
 #include "ggml.h"
-
 #include "utils.h"
-
 #include <cassert>
 #include <cmath>
 #include <cstdio>
@@ -10,6 +8,13 @@
 #include <map>
 #include <string>
 #include <vector>
+#include "httplib.h"
+#include "nlohmann/json.hpp"
+#include <iostream> 
+#include <algorithm>
+#include <curl/curl.h>
+#include <regex>
+#include <tuple>
 
 #if defined (__unix__) || (defined (__APPLE__) && defined (__MACH__))
 #include <signal.h>
@@ -32,8 +37,8 @@
 static const std::map<int, int> LLAMA_N_PARTS = {
     { 4096, 1 },
     { 5120, 1 },
-    { 6656, 1 },
-    { 8192, 1 },
+    { 6656, 4 },
+    { 8192, 8 },
 };
 
 // default hparams (LLaMA 7B)
@@ -86,6 +91,13 @@ struct llama_model {
     std::map<std::string, struct ggml_tensor *> tensors;
 };
 
+struct GptModelData {
+    gpt_params params;
+    std::mt19937 rng;
+    gpt_vocab vocab;
+    llama_model model;
+};
+
 // load the model's weights from a file
 bool llama_model_load(const std::string & fname, llama_model & model, gpt_vocab & vocab, int n_ctx) {
     fprintf(stderr, "%s: loading model from '%s' - please wait ...\n", __func__, fname.c_str());
@@ -117,7 +129,6 @@ bool llama_model_load(const std::string & fname, llama_model & model, gpt_vocab 
         auto & hparams = model.hparams;
 
         fin.read((char *) &hparams.n_vocab, sizeof(hparams.n_vocab));
-        //fin.read((char *) &hparams.n_ctx,   sizeof(hparams.n_ctx));
         fin.read((char *) &hparams.n_embd,  sizeof(hparams.n_embd));
         fin.read((char *) &hparams.n_mult,  sizeof(hparams.n_mult));
         fin.read((char *) &hparams.n_head,  sizeof(hparams.n_head));
@@ -129,17 +140,6 @@ bool llama_model_load(const std::string & fname, llama_model & model, gpt_vocab 
 
         n_ff = ((2*(4*hparams.n_embd)/3 + hparams.n_mult - 1)/hparams.n_mult)*hparams.n_mult;
         n_parts = LLAMA_N_PARTS.at(hparams.n_embd);
-
-        // fprintf(stderr, "%s: n_vocab = %d\n", __func__, hparams.n_vocab);
-        // fprintf(stderr, "%s: n_ctx   = %d\n", __func__, hparams.n_ctx);
-        // fprintf(stderr, "%s: n_embd  = %d\n", __func__, hparams.n_embd);
-        // fprintf(stderr, "%s: n_mult  = %d\n", __func__, hparams.n_mult);
-        // fprintf(stderr, "%s: n_head  = %d\n", __func__, hparams.n_head);
-        // fprintf(stderr, "%s: n_layer = %d\n", __func__, hparams.n_layer);
-        // fprintf(stderr, "%s: n_rot   = %d\n", __func__, hparams.n_rot);
-        // fprintf(stderr, "%s: f16     = %d\n", __func__, hparams.f16);
-        // fprintf(stderr, "%s: n_ff    = %d\n", __func__, n_ff);
-        // fprintf(stderr, "%s: n_parts = %d\n", __func__, n_parts);
     }
 
     // load vocab
@@ -162,10 +162,6 @@ bool llama_model_load(const std::string & fname, llama_model & model, gpt_vocab 
 
             vocab.token_to_id[word] = i;
             vocab.id_to_token[i] = word;
-
-            //if (i < 30000) {
-            //    fprintf(stderr, "%s: vocab[%d] = '%s'\n", __func__, i, word.c_str());
-            //}
         }
     }
 
@@ -318,10 +314,9 @@ bool llama_model_load(const std::string & fname, llama_model & model, gpt_vocab 
     fin.close();
 
     std::vector<uint8_t> tmp;
-    
+
     for (int i = 0; i < n_parts; ++i) {
         const int part_id = i;
-        //const int part_id = n_parts - i - 1;
 
         std::string fname_part = fname;
         if (i > 0) {
@@ -369,24 +364,8 @@ bool llama_model_load(const std::string & fname, llama_model & model, gpt_vocab 
                     return false;
                 }
 
-                // split_type = 0: split by columns
-                // split_type = 1: split by rows
                 int split_type = 0;
 
-                // split_type = 0:
-                // regex:
-                //   - tok_embeddings.*
-                //   - layers.*.attention.wo.weight
-                //   - layers.*.feed_forward.w2.weight
-
-                // split_type = 1:
-                // regex:
-                //   - output.*
-                //   - layers.*.attention.wq.weight
-                //   - layers.*.attention.wk.weight
-                //   - layers.*.attention.wv.weight
-                //   - layers.*.feed_forward.w1.weight
-                //   - layers.*.feed_forward.w3.weight
                 if (name.find("tok_embeddings") != std::string::npos) {
                     split_type = 0;
                 } else if (name.find("layers") != std::string::npos) {
@@ -520,16 +499,7 @@ bool llama_model_load(const std::string & fname, llama_model & model, gpt_vocab 
     return true;
 }
 
-// evaluate the transformer
-//
-//   - model:     the model
-//   - n_threads: number of threads to use
-//   - n_past:    the context size so far
-//   - embd_inp:  the embeddings of the tokens in the context
-//   - embd_w:    the predicted logits for the next token
-//
-// The GPT-J model requires about 16MB of memory per input token.
-//
+
 bool llama_eval(
         const llama_model & model,
         const int n_threads,
@@ -550,8 +520,6 @@ bool llama_eval(
 
     const int d_key = n_embd/n_head;
 
-     // TODO: check if this size scales with n_ctx linearly and remove constant. somehow I feel it wasn't the case
-    // static size_t buf_size = hparams.n_ctx*1024*1024;
     static size_t buf_size = 512u*1024*1024;
     static void * buf = malloc(buf_size);
 
@@ -734,22 +702,12 @@ bool llama_eval(
     ggml_build_forward_expand(&gf, inpL);
     ggml_graph_compute       (ctx0, &gf);
 
-    //if (n_past%100 == 0) {
-    //    ggml_graph_print   (&gf);
-    //    ggml_graph_dump_dot(&gf, NULL, "gpt-2.dot");
-    //}
-
-    //embd_w.resize(n_vocab*N);
-    //memcpy(embd_w.data(), ggml_get_data(inpL), sizeof(float)*n_vocab*N);
-
-    // return result for just the last token
     embd_w.resize(n_vocab);
     memcpy(embd_w.data(), (float *) ggml_get_data(inpL) + (n_vocab*(N-1)), sizeof(float)*n_vocab);
 
     if (mem_per_token == 0) {
         mem_per_token = ggml_used_mem(ctx0)/N;
     }
-    //fprintf(stderr, "used_mem = %zu\n", ggml_used_mem(ctx0));
 
     ggml_free(ctx0);
 
@@ -791,212 +749,156 @@ const char * llama_print_system_info(void) {
     return s.c_str();
 }
 
-int main(int argc, char ** argv) {
-    ggml_time_init();
-    const int64_t t_main_start_us = ggml_time_us();
+std::tuple<std::string, std::string, std::string> get_abstract_from_response(const std::string& response) {
+    nlohmann::json jsonResponse = nlohmann::json::parse(response);
+    std::string abstract = jsonResponse["Abstract"].get<std::string>();
+    std::string abstractSource = jsonResponse["AbstractSource"].get<std::string>();
+    std::string abstractURL = jsonResponse["AbstractURL"].get<std::string>();
+    return std::make_tuple(abstract, abstractSource, abstractURL);
+}
 
-    gpt_params params;
+static size_t WriteCallback(void *contents, size_t size, size_t nmemb, void *userp)
+{
+    ((std::string*)userp)->append((char*)contents, size * nmemb);
+    return size * nmemb;
+}
 
-    if (gpt_params_parse(argc, argv, params) == false) {
-        return 1;
-    }
+std::tuple<std::string, std::string, std::string> search(const std::string& query)
+{
+    CURL *curl;
+    CURLcode res;
+    std::string readBuffer;
 
-    if (params.seed < 0) {
-        params.seed = time(NULL);
-    }
-
-    fprintf(stderr, "%s: seed = %d\n", __func__, params.seed);
-
-    std::mt19937 rng(params.seed);
-    // if (params.prompt.empty()) {
-    //     params.prompt = gpt_random_prompt(rng);
-    // }
-
-//    params.prompt = R"(// this function checks if the number n is prime
-//bool is_prime(int n) {)";
-
-    int64_t t_load_us = 0;
-
-    gpt_vocab vocab;
-    llama_model model;
-
-    // load the model
-    {
-        const int64_t t_start_us = ggml_time_us();
-        if (!llama_model_load(params.model, model, vocab, params.n_ctx)) {  
-            fprintf(stderr, "%s: failed to load model from '%s'\n", __func__, params.model.c_str());
-            return 1;
+    curl = curl_easy_init();
+    if(curl) {
+        char* encoded_query = curl_easy_escape(curl, query.c_str(), 0);
+        if (!encoded_query) {
+            std::cerr << "Erreur d'encodage de l'URL" << std::endl;
+            curl_easy_cleanup(curl);
+            return std::make_tuple("", "", "");
         }
+        
+        std::string url = "https://api.duckduckgo.com/?q=" + std::string(encoded_query) + "&format=json&pretty=1&lang=en";
+        std::cout << "URL: " << url << std::endl;
 
-        t_load_us = ggml_time_us() - t_start_us;
+        curl_free(encoded_query);
+        curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
+        curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
+        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
+        curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
+        res = curl_easy_perform(curl);
+        curl_easy_cleanup(curl);
+
+        if (res != CURLE_OK) {
+            std::cerr << "Erreur curl : " << curl_easy_strerror(res) << std::endl;
+            return std::make_tuple("", "", "");
+        }
+    } else {
+        std::cerr << "Erreur: curl_easy_init a échoué." << std::endl;
+        return std::make_tuple("", "", "");
     }
 
-    // print system information
-    {
-        fprintf(stderr, "\n");
-        fprintf(stderr, "system_info: n_threads = %d / %d | %s\n",
-                params.n_threads, std::thread::hardware_concurrency(), llama_print_system_info());
+    std::string abstract, abstractSource, abstractURL;
+    std::tie(abstract, abstractSource, abstractURL) = get_abstract_from_response(readBuffer);
+    return std::make_tuple(abstract, abstractSource, abstractURL);
+}
+
+
+std::tuple<std::string, std::string, std::string> process_input(std::string &user_input, const std::string &instruction, int32_t &top_k, float &top_p, float temp, llama_model &model, gpt_vocab &vocab, gpt_params &params, std::mt19937 &rng, bool &web) {
+    params.temp = temp;
+    params.top_p = top_p;
+    params.top_k = top_k;
+    std::string abstract, abstractSource, abstractURL;
+
+    if (web) {
+        std::tie(abstract, abstractSource, abstractURL) = search(user_input);
+        if (abstract.empty()) {
+            return std::make_tuple(std::string("This request didn't return anything."), "", "");
+        } else {
+            std::cout << "Abstract: " << abstract << std::endl;
+            std::cout << "Abstract Source: " << abstractSource << std::endl;
+            std::cout << "Abstract URL: " << abstractURL << std::endl;
+            user_input = abstract;
+        }
     }
 
-    int n_past = 0;
-
-    int64_t t_sample_us  = 0;
-    int64_t t_predict_us = 0;
-
-    std::vector<float> logits;
-
-    // Add a space in front of the first character to match OG llama tokenizer behavior
-    // params.prompt.insert(0, 1, ' ');
-    // tokenize the prompt
     std::vector<gpt_vocab::id> embd_inp;
 
-    // params.n_predict = std::min(params.n_predict, model.hparams.n_ctx - (int) embd_inp.size());
+    std::string custom_instruction = "### Instruction:\n" + instruction + "\n";
 
-    // // tokenize the reverse prompt
-    // std::vector<gpt_vocab::id> antiprompt_inp = ::llama_tokenize(vocab, params.antiprompt, false);
-
-
-    std::vector<gpt_vocab::id> instruct_inp = ::llama_tokenize(vocab, " Below is an instruction that describes a task. Write a response that appropriately completes the request.\n\n", true);
-    std::vector<gpt_vocab::id> prompt_inp = ::llama_tokenize(vocab, "### Instruction:\n\n", true);
-    std::vector<gpt_vocab::id> response_inp = ::llama_tokenize(vocab, "### Response:\n\n", false);
-    embd_inp.insert(embd_inp.end(), instruct_inp.begin(), instruct_inp.end());
-
-    if(!params.prompt.empty()) {
-        std::vector<gpt_vocab::id> param_inp = ::llama_tokenize(vocab, params.prompt, true);
-        embd_inp.insert(embd_inp.end(), prompt_inp.begin(), prompt_inp.end());
-        embd_inp.insert(embd_inp.end(), param_inp.begin(), param_inp.end());
-        embd_inp.insert(embd_inp.end(), response_inp.begin(), response_inp.end());
+    if (!user_input.empty()) {
+        custom_instruction += "### Input:\n" + user_input + "\n";
     }
 
-    // fprintf(stderr, "\n");
-    // fprintf(stderr, "%s: prompt: '%s'\n", __func__, params.prompt.c_str());
-    // fprintf(stderr, "%s: number of tokens in prompt = %zu\n", __func__, embd_inp.size());
-    // for (int i = 0; i < (int) embd_inp.size(); i++) {
-    //     fprintf(stderr, "%6d -> '%s'\n", embd_inp[i], vocab.id_to_token.at(embd_inp[i]).c_str());
-    // }
-    // fprintf(stderr, "\n");
+    custom_instruction += "### Response:\n\n";
 
-    if (params.interactive) {
-#if defined (__unix__) || (defined (__APPLE__) && defined (__MACH__))
+    std::vector<gpt_vocab::id> instruct_inp = ::llama_tokenize(vocab, custom_instruction, true);
+
+    embd_inp.insert(embd_inp.end(), instruct_inp.begin(), instruct_inp.end());
+    
+    // Process embd_inp and generate embd
+    std::vector<gpt_vocab::id> embd;
+    std::vector<float> logits;
+    size_t mem_per_token = 0;
+    llama_eval(model, params.n_threads, 0, { 0, 1, 2, 3 }, logits, mem_per_token);
+    int n_past = 0;
+    int input_consumed = 0;
+    int remaining_tokens = model.hparams.n_ctx - embd_inp.size();
+    int last_n_size = params.repeat_last_n;
+    std::vector<gpt_vocab::id> last_n_tokens(last_n_size);
+    std::fill(last_n_tokens.begin(), last_n_tokens.end(), 0);
+    std::string response;
+
+    bool input_noecho = true;
+    bool end_of_text = false;
+
+    #if defined (__unix__) || (defined (__APPLE__) && defined (__MACH__))
         struct sigaction sigint_action;
         sigint_action.sa_handler = sigint_handler;
         sigemptyset (&sigint_action.sa_mask);
         sigint_action.sa_flags = 0;
         sigaction(SIGINT, &sigint_action, NULL);
-#elif defined (_WIN32)
-        signal(SIGINT, sigint_handler);
+    #elif defined (_WIN32)
+            signal(SIGINT, sigint_handler);
 
-        // Windows console ANSI color fix
-        DWORD mode = 0;
-        HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
-        if (hConsole && hConsole != INVALID_HANDLE_VALUE && GetConsoleMode(hConsole, &mode)){
-            SetConsoleMode(hConsole, mode | ENABLE_VIRTUAL_TERMINAL_PROCESSING);
-            SetConsoleOutputCP(CP_UTF8);
-        }
-#endif
-
-        fprintf(stderr, "%s: interactive mode on.\n", __func__);
-
-        // if(antiprompt_inp.size()) {
-        //     fprintf(stderr, "%s: reverse prompt: '%s'\n", __func__, params.antiprompt.c_str());
-        //     fprintf(stderr, "%s: number of tokens in reverse prompt = %zu\n", __func__, antiprompt_inp.size());
-        //     for (int i = 0; i < (int) antiprompt_inp.size(); i++) {
-        //         fprintf(stderr, "%6d -> '%s'\n", antiprompt_inp[i], vocab.id_to_token.at(antiprompt_inp[i]).c_str());
-        //     }
-        //     fprintf(stderr, "\n");
-        // }
-    }
-    fprintf(stderr, "sampling parameters: temp = %f, top_k = %d, top_p = %f, repeat_last_n = %i, repeat_penalty = %f\n", params.temp, params.top_k, params.top_p, params.repeat_last_n, params.repeat_penalty);
-    fprintf(stderr, "\n\n");
-
-    std::vector<gpt_vocab::id> embd;
-
-    // determine the required inference memory per token:
-    size_t mem_per_token = 0;
-    llama_eval(model, params.n_threads, 0, { 0, 1, 2, 3 }, logits, mem_per_token);
-
-    int last_n_size = params.repeat_last_n;
-    std::vector<gpt_vocab::id> last_n_tokens(last_n_size);
-    std::fill(last_n_tokens.begin(), last_n_tokens.end(), 0);
-
-
-    if (params.interactive) {
-        fprintf(stderr, "== Running in chat mode. ==\n"
-#if defined (__unix__) || (defined (__APPLE__) && defined (__MACH__)) || defined (_WIN32)
-               " - Press Ctrl+C to interject at any time.\n"
-#endif
-               " - Press Return to return control to LLaMA.\n"
-               " - If you want to submit another line, end your input in '\\'.\n");
-    }
-
-    // we may want to slide the input window along with the context, but for now we restrict to the context length
-    int remaining_tokens = model.hparams.n_ctx - embd_inp.size();
-    int input_consumed = 0;
-    bool input_noecho = true;
-
-    // prompt user immediately after the starting prompt has been loaded
-    if (params.interactive_start) {
-        is_interacting = true;
-    }
-
-    // set the color for the prompt which will be output initially
-    if (params.use_color) {
-        printf(ANSI_COLOR_YELLOW);
-    }
-
+            // Windows console ANSI color fix
+            DWORD mode = 0;
+            HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
+            if (hConsole && hConsole != INVALID_HANDLE_VALUE && GetConsoleMode(hConsole, &mode))
+                SetConsoleMode(hConsole, mode | ENABLE_VIRTUAL_TERMINAL_PROCESSING);
+    #endif
     
-
-    while (remaining_tokens > 0) {
-        // predict
+    while (remaining_tokens > 0 && !end_of_text) {
         if (embd.size() > 0) {
-            const int64_t t_start_us = ggml_time_us();
-
             if (!llama_eval(model, params.n_threads, n_past, embd, logits, mem_per_token)) {
                 fprintf(stderr, "Failed to predict\n");
-                return 1;
+                return std::make_tuple("Failed to predict", "", "");
             }
-
-            t_predict_us += ggml_time_us() - t_start_us;
         }
 
         n_past += embd.size();
         embd.clear();
 
-        if (embd_inp.size() <= input_consumed && !is_interacting) {
-            // out of user input, sample next token
+        if (embd_inp.size() <= input_consumed) {
             const float top_k = params.top_k;
             const float top_p = params.top_p;
-            const float temp  = params.temp;
+            const float temp = params.temp;
             const float repeat_penalty = params.repeat_penalty;
 
             const int n_vocab = model.hparams.n_vocab;
 
-            gpt_vocab::id id = 0;
+            gpt_vocab::id id = llama_sample_top_p_top_k(vocab, logits.data() + (logits.size() - n_vocab), last_n_tokens, repeat_penalty, top_k, top_p, temp, rng);
 
-            {
-                const int64_t t_start_sample_us = ggml_time_us();
+            last_n_tokens.erase(last_n_tokens.begin());
+            last_n_tokens.push_back(id);
 
-                id = llama_sample_top_p_top_k(vocab, logits.data() + (logits.size() - n_vocab), last_n_tokens, repeat_penalty, top_k, top_p, temp, rng);
-
-                last_n_tokens.erase(last_n_tokens.begin());
-                last_n_tokens.push_back(id);
-
-                t_sample_us += ggml_time_us() - t_start_sample_us;
-            }
-
-            // add it to the context
             embd.push_back(id);
 
-            // echo this to console
             input_noecho = false;
 
-            // decrement remaining sampling budget
             --remaining_tokens;
         } else {
-            // some user input remains from prompt or interaction, forward it to processing
             while (embd_inp.size() > input_consumed) {
-                // fprintf(stderr, "%6d -> '%s'\n", embd_inp[input_consumed], vocab.id_to_token.at(embd_inp[input_consumed]).c_str());
-
                 embd.push_back(embd_inp[input_consumed]);
                 last_n_tokens.erase(last_n_tokens.begin());
                 last_n_tokens.push_back(embd_inp[input_consumed]);
@@ -1005,109 +907,150 @@ int main(int argc, char ** argv) {
                     break;
                 }
             }
-
-            // reset color to default if we there is no pending user input
-            if (!input_noecho && params.use_color && embd_inp.size() == input_consumed) {
-                printf(ANSI_COLOR_RESET);
-            }
         }
-
-        // display text
+        if (embd.back() == 2) {
+            end_of_text = true;
+            continue;
+        }
         if (!input_noecho) {
+            bool is_sep = (embd.back() == 2);
             for (auto id : embd) {
                 printf("%s", vocab.id_to_token[id].c_str());
+                if (!is_sep) {
+                    response += vocab.id_to_token[id].c_str();
+                }
             }
             fflush(stdout);
         }
+    }
+    return std::make_tuple(response, abstractSource, abstractURL);
+}
 
-        // in interactive mode, and not currently processing queued inputs;
-        // check if we should prompt the user for more
-        if (params.interactive && embd_inp.size() <= input_consumed) {
-            // check for reverse prompt
-            // if (antiprompt_inp.size() && std::equal(antiprompt_inp.rbegin(), antiprompt_inp.rend(), last_n_tokens.rbegin())) {
-            //     // reverse prompt found
-            //     is_interacting = true;
-            // }
-            if (is_interacting) {
-                // input_consumed =  0;
-                // embd_inp.erase(embd_inp.begin());
-                input_consumed = embd_inp.size();
-                embd_inp.insert(embd_inp.end(), prompt_inp.begin(), prompt_inp.end());
-                
 
-                printf("\n> ");
+GptModelData initialize_model(int argc, char *argv[]) {
+    ggml_time_init();
+    const int64_t t_main_start_us = ggml_time_us();
 
-                // currently being interactive
-                bool another_line=true;
-                while (another_line) {
-                    fflush(stdout);
-                    char buf[256] = {0};
-                    int n_read;
-                    if(params.use_color) printf(ANSI_BOLD ANSI_COLOR_GREEN);
-                    if (scanf("%255[^\n]%n%*c", buf, &n_read) <= 0) {
-                        // presumable empty line, consume the newline
-                        if (scanf("%*c") <= 0) { /*ignore*/ }
-                        n_read=0;
-                    }
-                    if(params.use_color) printf(ANSI_COLOR_RESET);
+    GptModelData gpt_model_data;
 
-                    if (n_read > 0 && buf[n_read-1]=='\\') {
-                        another_line = true;
-                        buf[n_read-1] = '\n';
-                        buf[n_read] = 0;
-                    } else {
-                        another_line = false;
-                        buf[n_read] = '\n';
-                        buf[n_read+1] = 0;
-                    }
+    gpt_model_data.params.temp = 0.05f;
+    gpt_model_data.params.top_p = 0.98f;
+    gpt_model_data.params.n_ctx = 2048;
+    gpt_model_data.params.interactive = true;
+    gpt_model_data.params.interactive_start = true;
+    gpt_model_data.params.use_color = true;
+    gpt_model_data.params.model = "ggml-alpaca-7b-q4.bin";
 
-                    std::vector<gpt_vocab::id> line_inp = ::llama_tokenize(vocab, buf, false);
-                    embd_inp.insert(embd_inp.end(), line_inp.begin(), line_inp.end());
-                    embd_inp.insert(embd_inp.end(), response_inp.begin(), response_inp.end());
-
-                    remaining_tokens -= prompt_inp.size() + line_inp.size() + response_inp.size();
-
-                    input_noecho = true; // do not echo this again
-                }
-
-                is_interacting = false;
-            }
-        }
-
-        // end of text token
-        if (embd.back() == 2) {
-            if (params.interactive) {
-                is_interacting = true;
-                continue;
-            } else {
-                printf("\n");
-                fprintf(stderr, " [end of text]\n");
-                break;
-            }
-        }
+    if (gpt_params_parse(argc, argv, gpt_model_data.params) == false) {
+        throw std::runtime_error("Failed to parse GPT parameters");
     }
 
-#if defined (_WIN32)
-    signal(SIGINT, SIG_DFL);
-#endif
+    if (gpt_model_data.params.seed < 0) {
+        gpt_model_data.params.seed = time(NULL);
+    }
 
-    // report timing
+    fprintf(stderr, "%s: seed = %d\n", __func__, gpt_model_data.params.seed);
+
+    gpt_model_data.rng.seed(gpt_model_data.params.seed);
+
+    int64_t t_load_us = 0;
+
     {
-        const int64_t t_main_end_us = ggml_time_us();
+        const int64_t t_start_us = ggml_time_us();
+        if (!llama_model_load(gpt_model_data.params.model, gpt_model_data.model, gpt_model_data.vocab, gpt_model_data.params.n_ctx)) {  
+            fprintf(stderr, "%s: failed to load model from '%s'\n", __func__, gpt_model_data.params.model.c_str());
+            throw std::runtime_error("Failed to load GPT model");
+        }
 
-        fprintf(stderr, "\n\n");
-        fprintf(stderr, "%s: mem per token = %8zu bytes\n", __func__, mem_per_token);
-        fprintf(stderr, "%s:     load time = %8.2f ms\n", __func__, t_load_us/1000.0f);
-        fprintf(stderr, "%s:   sample time = %8.2f ms\n", __func__, t_sample_us/1000.0f);
-        fprintf(stderr, "%s:  predict time = %8.2f ms / %.2f ms per token\n", __func__, t_predict_us/1000.0f, t_predict_us/1000.0f/n_past);
-        fprintf(stderr, "%s:    total time = %8.2f ms\n", __func__, (t_main_end_us - t_main_start_us)/1000.0f);
+        t_load_us = ggml_time_us() - t_start_us;
     }
 
-    ggml_free(model.ctx);
+    return gpt_model_data;
+}
 
-    if (params.use_color) {
-        printf(ANSI_COLOR_RESET);
-    }
+void set_cors_headers(httplib::Response &res) {
+    res.set_header("Access-Control-Allow-Origin", "*");
+    res.set_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+    res.set_header("Access-Control-Allow-Headers", "Content-Type");
+}
+
+int main(int argc, char *argv[]) {
+    using namespace httplib;
+
+    Server svr;
+
+    GptModelData gpt_model_data = initialize_model(argc, argv);
+
+    svr.Post("/query", [&gpt_model_data](const Request& req, Response& res) {
+        set_cors_headers(res);
+	    std::cout << "Received request: " << req.body << std::endl;
+        auto json_request = nlohmann::json::parse(req.body);
+        if (!json_request.is_object()) {
+            res.status = 400;
+            res.set_content("Invalid JSON request body.", "text/plain");
+            return;
+        }
+
+        if (json_request.find("input") == json_request.end()) {
+            res.status = 400;
+            res.set_content("Missing 'input' field in JSON request body.", "text/plain");
+            return;
+        }
+        std::string input = json_request["input"];
+
+        if (json_request.find("instruction") == json_request.end()) {
+            res.status = 400;
+            res.set_content("Missing 'instruction' field in JSON request body.", "text/plain");
+            return;
+        }
+        std::string instruction = json_request["instruction"];
+
+        if (json_request.find("top_k") == json_request.end() || !json_request["top_k"].is_number_integer()) {
+            res.status = 400;
+            res.set_content("Invalid or missing 'top_k' field in JSON request body.", "text/plain");
+            return;
+        }
+        int32_t top_k = json_request["top_k"];
+
+        if (json_request.find("top_p") == json_request.end() || !json_request["top_p"].is_number()) {
+            res.status = 400;
+            res.set_content("Invalid or missing 'top_p' field in JSON request body.", "text/plain");
+            return;
+        }
+        float top_p = json_request["top_p"];
+
+        if (json_request.find("temperature") == json_request.end() || !json_request["temperature"].is_number()) {
+            res.status = 400;
+            res.set_content("Invalid or missing 'temperature' field in JSON request body.", "text/plain");
+            return;
+        }
+        float temp = json_request["temperature"];
+
+        bool web = false;
+
+        if (json_request.contains("web") && json_request["web"].is_boolean()) {
+            web = json_request["web"];
+        } else {
+            std::cerr << "Warning: 'web' field is missing or not a boolean, defaulting to false" << std::endl;
+        }
+
+        std::tuple<std::string, std::string, std::string> output = process_input(input, instruction, top_k, top_p, temp, gpt_model_data.model,gpt_model_data.vocab, gpt_model_data.params, gpt_model_data.rng, web);
+
+        nlohmann::json json_response;
+        json_response["response"] = std::get<0>(output);
+        json_response["source"] = std::get<1>(output);
+        json_response["url"] = std::get<2>(output);
+
+        res.set_content(json_response.dump(), "application/json");
+    });
+
+    std::cout << "Server started at http://localhost:8000" << std::endl;
+
+    svr.Options(".*", [](const Request &req, Response &res) {
+        set_cors_headers(res);
+    });
+
+    svr.listen("localhost", 8000);
 
     return 0;
 }
