@@ -10,11 +10,23 @@
 #include <vector>
 #include "httplib.h"
 #include "nlohmann/json.hpp"
+#include "jwt-cpp/jwt.h"
+#include <sodium.h>
 #include <iostream> 
 #include <algorithm>
 #include <curl/curl.h>
 #include <regex>
 #include <tuple>
+#include <sstream>
+#include <iomanip>
+#include <mysql_connection.h>
+#include <memory>
+#include <cppconn/driver.h>
+#include <cppconn/exception.h>
+#include <mysql_driver.h>
+#include <cppconn/resultset.h>
+#include <cppconn/statement.h>
+#include <cppconn/prepared_statement.h>
 
 #if defined (__unix__) || (defined (__APPLE__) && defined (__MACH__))
 #include <signal.h>
@@ -32,6 +44,8 @@
 #define ANSI_COLOR_CYAN    "\x1b[36m"
 #define ANSI_COLOR_RESET   "\x1b[0m"
 #define ANSI_BOLD          "\x1b[1m"
+
+using namespace httplib;
 
 // determine number of model parts based on the dimension
 static const std::map<int, int> LLAMA_N_PARTS = {
@@ -968,89 +982,219 @@ GptModelData initialize_model(int argc, char *argv[]) {
     return gpt_model_data;
 }
 
+std::string generate_jwt(const std::string& email) {
+    auto key = "this is secret we should not share with anyone because it is a secret that we should not share with anyone";
+    auto token = jwt::create()
+        .set_issuer("alpacaLLama")
+        .set_subject(email)
+        .set_issued_at(std::chrono::system_clock::now())
+        .set_expires_at(std::chrono::system_clock::now() + std::chrono::hours(24))
+        .sign(jwt::algorithm::hs256{ key });
+    return token;
+}
+
+bool validate_jwt(const std::string& jwt) {
+    try {
+        auto decoded_token = jwt::decode(jwt);
+        if (decoded_token.get_issuer() != "alpacaLLama") {
+            return false;
+        }
+        if (decoded_token.get_subject().empty()) {
+            return false;
+        }
+        if (decoded_token.get_expires_at()< std::chrono::system_clock::now()) {
+            return false;
+        }
+
+        jwt::verify()
+            .allow_algorithm(jwt::algorithm::hs256{ "this is secret we should not share with anyone because it is a secret that we should not share with anyone"})
+            .with_issuer("alpacaLLama")
+            .verify(decoded_token);
+
+        return true;
+    } catch (const std::exception&) {
+        return false;
+    }
+}
+
 void set_cors_headers(httplib::Response &res) {
     res.set_header("Access-Control-Allow-Origin", "*");
     res.set_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-    res.set_header("Access-Control-Allow-Headers", "Content-Type");
+    res.set_header("Access-Control-Allow-Credentials", "true");
+    res.set_header("Access-Control-Allow-Headers", "Content-Type, Authorization");
 }
 
-int main(int argc, char *argv[]) {
-    using namespace httplib;
 
+int main(int argc, char *argv[]) {
+    
     Server svr;
 
     GptModelData gpt_model_data = initialize_model(argc, argv);
 
-    svr.Post("/query", [&gpt_model_data](const Request& req, Response& res) {
-        set_cors_headers(res);
-	    std::cout << "Received request: " << req.body << std::endl;
-        auto json_request = nlohmann::json::parse(req.body);
-        if (!json_request.is_object()) {
-            res.status = 400;
-            res.set_content("Invalid JSON request body.", "text/plain");
-            return;
+    try {
+        sql::Driver *driver;
+        sql::Connection *con;
+
+        driver = get_driver_instance();
+        con = driver->connect("tcp://localhost:3306", "anthony", "anthony47");
+        con->setSchema("alpaca");
+
+        if (sodium_init() < 0) {
+            std::cerr << "Panic! The library couldn't be initialized, it is not safe to use" << std::endl;
+            return 1;
         }
 
-        if (json_request.find("input") == json_request.end()) {
-            res.status = 400;
-            res.set_content("Missing 'input' field in JSON request body.", "text/plain");
-            return;
-        }
-        std::string input = json_request["input"];
+        svr.Post("/query", [con, &gpt_model_data](const Request& req, Response& res) {
+            set_cors_headers(res);
+            std::cout << "Received request: " << req.body << std::endl;
 
-        if (json_request.find("instruction") == json_request.end()) {
-            res.status = 400;
-            res.set_content("Missing 'instruction' field in JSON request body.", "text/plain");
-            return;
-        }
-        std::string instruction = json_request["instruction"];
+            auto it = req.headers.find("Authorization");
+            if (it == req.headers.end() || it->second.substr(0, 7) != "Bearer ") {
+                res.status = 401;
+                res.set_content("Missing or invalid Bearer token.", "text/plain");
+                return;
+            }
 
-        if (json_request.find("top_k") == json_request.end() || !json_request["top_k"].is_number_integer()) {
-            res.status = 400;
-            res.set_content("Invalid or missing 'top_k' field in JSON request body.", "text/plain");
-            return;
-        }
-        int32_t top_k = json_request["top_k"];
+            std::string token = it->second.substr(7);
+            if (!validate_jwt(token)) {
+                res.status = 401;
+                res.set_content("Invalid Bearer token.", "text/plain");
+                return;
+            }
 
-        if (json_request.find("top_p") == json_request.end() || !json_request["top_p"].is_number()) {
-            res.status = 400;
-            res.set_content("Invalid or missing 'top_p' field in JSON request body.", "text/plain");
-            return;
-        }
-        float top_p = json_request["top_p"];
+            auto json_request = nlohmann::json::parse(req.body);
+            if (!json_request.is_object()) {
+                res.status = 400;
+                res.set_content("Invalid JSON request body.", "text/plain");
+                return;
+            }
 
-        if (json_request.find("temperature") == json_request.end() || !json_request["temperature"].is_number()) {
-            res.status = 400;
-            res.set_content("Invalid or missing 'temperature' field in JSON request body.", "text/plain");
-            return;
-        }
-        float temp = json_request["temperature"];
+            if (json_request.find("input") == json_request.end()) {
+                res.status = 400;
+                res.set_content("Missing 'input' field in JSON request body.", "text/plain");
+                return;
+            }
+            std::string input = json_request["input"];
 
-        bool web = false;
+            if (json_request.find("instruction") == json_request.end()) {
+                res.status = 400;
+                res.set_content("Missing 'instruction' field in JSON request body.", "text/plain");
+                return;
+            }
+            std::string instruction = json_request["instruction"];
 
-        if (json_request.contains("web") && json_request["web"].is_boolean()) {
-            web = json_request["web"];
-        } else {
-            std::cerr << "Warning: 'web' field is missing or not a boolean, defaulting to false" << std::endl;
-        }
+            if (json_request.find("top_k") == json_request.end() || !json_request["top_k"].is_number_integer()) {
+                res.status = 400;
+                res.set_content("Invalid or missing 'top_k' field in JSON request body.", "text/plain");
+                return;
+            }
+            int32_t top_k = json_request["top_k"];
 
-        std::tuple<std::string, std::string, std::string> output = process_input(input, instruction, top_k, top_p, temp, gpt_model_data.model,gpt_model_data.vocab, gpt_model_data.params, gpt_model_data.rng, web);
+            if (json_request.find("top_p") == json_request.end() || !json_request["top_p"].is_number()) {
+                res.status = 400;
+                res.set_content("Invalid or missing 'top_p' field in JSON request body.", "text/plain");
+                return;
+            }
+            float top_p = json_request["top_p"];
 
-        nlohmann::json json_response;
-        json_response["response"] = std::get<0>(output);
-        json_response["source"] = std::get<1>(output);
-        json_response["url"] = std::get<2>(output);
+            if (json_request.find("temperature") == json_request.end() || !json_request["temperature"].is_number()) {
+                res.status = 400;
+                res.set_content("Invalid or missing 'temperature' field in JSON request body.", "text/plain");
+                return;
+            }
+            float temp = json_request["temperature"];
 
-        res.set_content(json_response.dump(), "application/json");
-    });
+            bool web = false;
 
-    std::cout << "Server started at http://localhost:8000" << std::endl;
+            if (json_request.contains("web") && json_request["web"].is_boolean()) {
+                web = json_request["web"];
+            } else {
+                std::cerr << "Warning: 'web' field is missing or not a boolean, defaulting to false" << std::endl;
+            }
 
-    svr.Options(".*", [](const Request &req, Response &res) {
-        set_cors_headers(res);
-    });
+            std::tuple<std::string, std::string, std::string> output = process_input(input, instruction, top_k, top_p, temp, gpt_model_data.model,gpt_model_data.vocab, gpt_model_data.params, gpt_model_data.rng, web);
 
-    svr.listen("localhost", 8000);
+            nlohmann::json json_response;
+            json_response["response"] = std::get<0>(output);
+            json_response["source"] = std::get<1>(output);
+            json_response["url"] = std::get<2>(output);
+
+            res.set_content(json_response.dump(), "application/json");
+        });
+
+        svr.Post("/login", [con](const Request& req, Response& res) {
+            set_cors_headers(res);
+            nlohmann::json root = nlohmann::json::parse(req.body);
+            nlohmann::json json_response;
+            if (!root.is_object()) {
+                res.status = 400;
+                json_response["error"] = "Invalid JSON request body";
+                res.set_content(json_response.dump(), "application/json");
+                return;
+            }
+
+            std::string email = root["email"];
+            std::string password = root["password"];
+
+            std::string stored_hash;
+            try {
+                sql::PreparedStatement *stmt;
+                sql::ResultSet *res_set;
+
+                stmt = con->prepareStatement("SELECT password FROM users WHERE email = ?");
+                stmt->setString(1, email);
+                res_set = stmt->executeQuery();
+
+                if (res_set->next()) {
+                    stored_hash = res_set->getString("password");
+                }
+                delete stmt;
+                delete res_set;
+
+            } catch (const std::exception& e) {
+                res.status = 500;
+                json_response["error"] = "Database error";
+                res.set_content(json_response.dump(), "application/json");
+                return;
+            }
+
+            if (stored_hash.empty()) {
+                res.status = 401;
+                json_response["error"] = "Invalid credentials";
+                res.set_content(json_response.dump(), "application/json");
+                return;
+            }
+
+            if (crypto_pwhash_str_verify(stored_hash.c_str(), password.c_str(), password.size()) != 0) {
+                res.status = 401;
+                json_response["error"] = "Password failed";
+                res.set_content(json_response.dump(), "application/json");
+                return;
+            }
+
+            std::string jwt_token = generate_jwt(email);
+            res.status = 200;
+            json_response["token"] = jwt_token;
+            res.set_content(json_response.dump(), "application/json");
+        });
+
+
+        std::cout << "Server started at http://localhost:8000" << std::endl;
+
+        svr.Options(".*", [](const Request &req, Response &res) {
+            set_cors_headers(res);
+        });
+
+        svr.listen("localhost", 8000);
+
+    } catch (sql::SQLException &e) {
+        std::cerr << "ERROR: SQLException in " << __FILE__;
+        std::cerr << " (" << __func__ << ") on line " << __LINE__ << std::endl;
+        std::cerr << "ERROR: " << e.what();
+        std::cerr << " (MySQL error code: " << e.getErrorCode() << ", SQLState: " << e.getSQLState() << ")" << std::endl;
+        return 1;
+    }
 
     return 0;
 }
+

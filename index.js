@@ -1,4 +1,4 @@
-const apiUrl = "http://localhost:8000/query";
+const apiUrl = "http://localhost:8000";
 
 function saveConversation() {
   const chatMessages = document.getElementById("chat-messages");
@@ -61,11 +61,11 @@ document
 
     displayChatMessage(userInput, "user-message");
 
-    // Send the data to the API and handle the response
-    fetch(apiUrl, {
+    fetch(apiUrl + "/query", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        Authorization: "Bearer " + localStorage.getItem("jwt_token"),
       },
       body: JSON.stringify({
         instruction: instruction,
@@ -128,3 +128,42 @@ document
     );
     confirmationModal.hide();
   });
+
+document
+  .getElementById("login-form")
+  .addEventListener("submit", function (event) {
+    event.preventDefault();
+    const email = document.getElementById("email").value;
+    const password = document.getElementById("password").value;
+    loginUser(email, password);
+  });
+
+function loginUser(email, password) {
+  fetch(apiUrl + "/login", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      email: email,
+      password: password,
+    }),
+  })
+    .then((response) => response.json())
+    .then((data) => {
+        document.getElementById("login-container").style.display = "none";
+        document.getElementById("main-container").style.display = "block";
+        localStorage.setItem("jwt_token", data.token);
+    })
+    .catch((error) => {
+      console.error("Error:", error.error);
+    });
+}
+
+document.getElementById("logout-button").addEventListener("click", function () {
+  if (localStorage.getItem("jwt_token")) {
+    localStorage.removeItem("jwt_token");
+    document.getElementById("main-container").style.display = "none";
+    document.getElementById("login-container").style.display = "block";
+  }
+});

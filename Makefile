@@ -36,7 +36,8 @@ CFLAGS   = -I.              -O3 -DNDEBUG -std=c11   -fPIC
 CXXFLAGS = -I. -I./examples -O3 -DNDEBUG -std=c++11 -fPIC
 CXXFLAGS += -I$(PROJECT_DIR)/json/include -std=c++11
 CXXFLAGS += -I$(PROJECT_DIR)/cpp-httplib -std=c++11
-LDFLAGS  = -lcurl
+CXXFLAGS += -I$(PROJECT_DIR)/jwt-cpp/include -std=c++11
+LDFLAGS  = -lcurl -lmysqlcppconn -lcrypto -lsodium
 
 # OS specific
 # TODO: support Windows

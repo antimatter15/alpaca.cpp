@@ -12,184 +12,228 @@
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
-    <div class="container mt-3">
-      <h1 class="mb-4">
-        <img src="logo.svg" alt="logo" class="logo" /> AlpacaLLama
-      </h1>
-      <form id="gpt-form">
-        <div class="row">
-          <div class="col-md-2">
-            <div class="card shadow p-3 mb-3">
-              <div class="mb-3">
-                <label for="temperature" class="form-label">Temperature</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  class="form-control"
-                  id="temperature"
-                  name="temperature"
-                  value="0.05"
-                  required
-                />
-              </div>
-              <div class="mb-3">
-                <label for="top-p" class="form-label">Top-P</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  max="1"
-                  class="form-control"
-                  id="top-p"
-                  name="top_p"
-                  value="0.99"
-                  required
-                />
-              </div>
-              <div class="mb-3">
-                <label for="top-k" class="form-label">Top-K</label>
-                <input
-                  type="number"
-                  step="1"
-                  min="1"
-                  class="form-control"
-                  id="top-k"
-                  name="top_k"
-                  value="60"
-                  required
-                />
-              </div>
+    <div id="login-container">
+      <div class="container mt-3">
+        <h1 class="mb-4">
+          <img src="logo.svg" alt="logo" class="logo" /> AlpacaLLama
+        </h1>
+        <div class="card shadow p-3 mb-3">
+          <form id="login-form">
+            <div class="mb-3">
+              <label for="email" class="form-label">Email</label>
+              <input
+                type="email"
+                class="form-control"
+                id="email"
+                name="email"
+                required
+              />
             </div>
-          </div>
-          <div class="col-md-6">
-            <div class="mb-3 card shadow p-3" id="response-container">
-              <div class="chat-container mb-3">
-                <ul class="chat-messages" id="chat-messages"></ul>
-              </div>
-              <div>
-                <div id="clear-conversation" class="btn btn-danger w-auto">
-                  Clear Conversation
-                </div>
-              </div>
+            <div class="mb-3">
+              <label for="password" class="form-label">Mot de passe</label>
+              <input
+                type="password"
+                class="form-control"
+                id="password"
+                name="password"
+                required
+              />
             </div>
-          </div>
-          <div class="col-md-4">
-            <div class="card shadow p-3 mb-3">
-              <div class="mb-3">
-                <label for="instruction" class="form-label">Instruction</label>
-                <textarea
-                  class="form-control"
-                  id="instruction"
-                  name="instruction"
-                  rows="3"
-                  required
-                ></textarea>
-              </div>
-              <div class="mb-3">
-                <label for="user-input" class="form-label">Input</label>
-                <textarea
-                  class="form-control"
-                  id="user-input"
-                  name="user_input"
-                  rows="3"
-                  required
-                ></textarea>
-              </div>
-              <div class="form-check mb-3">
-                <input
-                  class="form-check-input"
-                  type="checkbox"
-                  value=""
-                  id="web"
-                  checked
-                />
-                <label class="form-check-label" for="flexCheckChecked">
-                  Search with DuckduckGo
-                </label>
-              </div>
-              <div>
-                <div class="d-none" id="spinner">
-                  <div class="spinner-border text-primary" role="status">
-                    <span class="visually-hidden">Loading...</span>
-                  </div>
-                </div>
-                <button type="submit" class="btn btn-primary" id="submit">
-                  Submit
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </form>
-    </div>
-    <div
-      class="modal fade"
-      id="errorModal"
-      tabindex="-1"
-      aria-labelledby="errorModalLabel"
-      aria-hidden="true"
-    >
-      <div class="modal-dialog">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title" id="errorModalLabel">Error</h5>
-            <button
-              type="button"
-              class="btn-close"
-              data-bs-dismiss="modal"
-              aria-label="close"
-            ></button>
-          </div>
-          <div class="modal-body">
-            <p id="errorModalText"></p>
-          </div>
-          <div class="modal-footer">
-            <button
-              type="button"
-              class="btn btn-secondary"
-              data-bs-dismiss="modal"
-            >
-              Close
-            </button>
-          </div>
+            <button type="submit" class="btn btn-primary">Login</button>
+          </form>
         </div>
       </div>
     </div>
-    <div
-      class="modal fade"
-      id="confirmationModal"
-      tabindex="-1"
-      aria-labelledby="confirmationModalLabel"
-      aria-hidden="true"
-    >
-      <div class="modal-dialog">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title" id="confirmationModalLabel">
-              Confirm Deletion
-            </h5>
-            <button
-              type="button"
-              class="btn-close"
-              data-bs-dismiss="modal"
-              aria-label="Close"
-            ></button>
+
+    <div id="main-container" style="display: none">
+      <div class="container mt-3">
+        <h1 class="mb-4">
+          <img src="logo.svg" alt="logo" class="logo" /> AlpacaLLama
+        </h1>
+        <form id="gpt-form">
+          <div class="row">
+            <div class="col-md-2">
+              <div class="card shadow p-3 mb-3">
+                <div class="mb-3">
+                  <label for="temperature" class="form-label"
+                    >Temperature</label
+                  >
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    class="form-control"
+                    id="temperature"
+                    name="temperature"
+                    value="0.05"
+                    required
+                  />
+                </div>
+                <div class="mb-3">
+                  <label for="top-p" class="form-label">Top-P</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    max="1"
+                    class="form-control"
+                    id="top-p"
+                    name="top_p"
+                    value="0.99"
+                    required
+                  />
+                </div>
+                <div class="mb-3">
+                  <label for="top-k" class="form-label">Top-K</label>
+                  <input
+                    type="number"
+                    step="1"
+                    min="1"
+                    class="form-control"
+                    id="top-k"
+                    name="top_k"
+                    value="60"
+                    required
+                  />
+                </div>
+                <div>
+                    <div id="logout-button" class="btn btn-secondary">
+                      Logout
+                    </div>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="mb-3 card shadow p-3" id="response-container">
+                <div class="chat-container mb-3">
+                  <ul class="chat-messages" id="chat-messages"></ul>
+                </div>
+                <div>
+                  <div id="clear-conversation" class="btn btn-danger w-auto">
+                    Clear Conversation
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="card shadow p-3 mb-3">
+                <div class="mb-3">
+                  <label for="instruction" class="form-label"
+                    >Instruction</label
+                  >
+                  <textarea
+                    class="form-control"
+                    id="instruction"
+                    name="instruction"
+                    rows="3"
+                    required
+                  ></textarea>
+                </div>
+                <div class="mb-3">
+                  <label for="user-input" class="form-label">Input</label>
+                  <textarea
+                    class="form-control"
+                    id="user-input"
+                    name="user_input"
+                    rows="3"
+                    required
+                  ></textarea>
+                </div>
+                <div class="form-check mb-3">
+                  <input
+                    class="form-check-input"
+                    type="checkbox"
+                    value=""
+                    id="web"
+                    checked
+                  />
+                  <label class="form-check-label" for="flexCheckChecked">
+                    Search with DuckduckGo
+                  </label>
+                </div>
+                <div>
+                  <div class="d-none" id="spinner">
+                    <div class="spinner-border text-primary" role="status">
+                      <span class="visually-hidden">Loading...</span>
+                    </div>
+                  </div>
+                  <button type="submit" class="btn btn-primary" id="submit">
+                    Submit
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
-          <div class="modal-body">
-            Are you sure you want to delete the conversation?
+        </form>
+      </div>
+      <div
+        class="modal fade"
+        id="errorModal"
+        tabindex="-1"
+        aria-labelledby="errorModalLabel"
+        aria-hidden="true"
+      >
+        <div class="modal-dialog">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title" id="errorModalLabel">Error</h5>
+              <button
+                type="button"
+                class="btn-close"
+                data-bs-dismiss="modal"
+                aria-label="close"
+              ></button>
+            </div>
+            <div class="modal-body">
+              <p id="errorModalText"></p>
+            </div>
+            <div class="modal-footer">
+              <button
+                type="button"
+                class="btn btn-secondary"
+                data-bs-dismiss="modal"
+              >
+                Close
+              </button>
+            </div>
           </div>
-          <div class="modal-footer">
-            <button
-              type="button"
-              class="btn btn-secondary"
-              data-bs-dismiss="modal"
-            >
-              Cancel
-            </button>
-            <button type="button" class="btn btn-danger" id="confirm-delete">
-              Delete
-            </button>
+        </div>
+      </div>
+      <div
+        class="modal fade"
+        id="confirmationModal"
+        tabindex="-1"
+        aria-labelledby="confirmationModalLabel"
+        aria-hidden="true"
+      >
+        <div class="modal-dialog">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title" id="confirmationModalLabel">
+                Confirm Deletion
+              </h5>
+              <button
+                type="button"
+                class="btn-close"
+                data-bs-dismiss="modal"
+                aria-label="Close"
+              ></button>
+            </div>
+            <div class="modal-body">
+              Are you sure you want to delete the conversation?
+            </div>
+            <div class="modal-footer">
+              <button
+                type="button"
+                class="btn btn-secondary"
+                data-bs-dismiss="modal"
+              >
+                Cancel
+              </button>
+              <button type="button" class="btn btn-danger" id="confirm-delete">
+                Delete
+              </button>
+            </div>
           </div>
         </div>
       </div>

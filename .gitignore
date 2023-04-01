@@ -38,3 +38,5 @@ CMakeCache.txt
 *.dir/
 json/
 cpp-httplib/
+jwt-cpp/
+sqlite_modern_cpp/
