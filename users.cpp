@@ -6,6 +6,25 @@
 #include <sodium.h>
 #include <cppconn/prepared_statement.h>
 #include <vector>
+#include <fstream>
+#include <stdexcept>
+#include <tuple>
+
+std::tuple<std::string, std::string, std::string, std::string> read_db_config(const std::string& file_path) {
+    std::ifstream config_file(file_path);
+
+    if (!config_file.is_open()) {
+        throw std::runtime_error("Could not open the configuration file");
+    }
+
+    std::string host, user, password, schema;
+    std::getline(config_file, host);
+    std::getline(config_file, user);
+    std::getline(config_file, password);
+    std::getline(config_file, schema);
+
+    return std::make_tuple(host, user, password, schema);
+}
 
 std::string hashPassword(const std::string& password) {
     if (sodium_init() == -1) {
@@ -30,9 +49,10 @@ std::string hashPassword(const std::string& password) {
 
 int main() {
     // Connecte à la base de données
+    auto [host, user, password, schema] = read_db_config("db_config.txt");
     sql::mysql::MySQL_Driver *raw_driver = sql::mysql::get_mysql_driver_instance();
-    std::unique_ptr<sql::Connection> con(raw_driver->connect("tcp://localhost:3306", "anthony", "anthony47"));
-    con->setSchema("alpaca");
+    std::unique_ptr<sql::Connection> con(raw_driver->connect(host, user, password));
+    con->setSchema(schema);
 
     // Saisit les informations de l'utilisateur
     std::string email, password;

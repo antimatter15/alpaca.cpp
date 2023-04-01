@@ -27,6 +27,7 @@
 #include <cppconn/resultset.h>
 #include <cppconn/statement.h>
 #include <cppconn/prepared_statement.h>
+#include <stdexcept>
 
 #if defined (__unix__) || (defined (__APPLE__) && defined (__MACH__))
 #include <signal.h>
@@ -111,6 +112,22 @@ struct GptModelData {
     gpt_vocab vocab;
     llama_model model;
 };
+
+std::tuple<std::string, std::string, std::string, std::string> read_db_config(const std::string& file_path) {
+    std::ifstream config_file(file_path);
+
+    if (!config_file.is_open()) {
+        throw std::runtime_error("Could not open the configuration file");
+    }
+
+    std::string host, user, password, schema;
+    std::getline(config_file, host);
+    std::getline(config_file, user);
+    std::getline(config_file, password);
+    std::getline(config_file, schema);
+
+    return std::make_tuple(host, user, password, schema);
+}
 
 // load the model's weights from a file
 bool llama_model_load(const std::string & fname, llama_model & model, gpt_vocab & vocab, int n_ctx) {
@@ -1036,8 +1053,9 @@ int main(int argc, char *argv[]) {
         sql::Connection *con;
 
         driver = get_driver_instance();
-        con = driver->connect("tcp://localhost:3306", "anthony", "anthony47");
-        con->setSchema("alpaca");
+        auto [host, user, password, schema] = read_db_config("db_config.txt");
+        con = driver->connect(host, user, password);
+        con->setSchema(schema);
 
         if (sodium_init() < 0) {
             std::cerr << "Panic! The library couldn't be initialized, it is not safe to use" << std::endl;
@@ -1047,59 +1065,67 @@ int main(int argc, char *argv[]) {
         svr.Post("/query", [con, &gpt_model_data](const Request& req, Response& res) {
             set_cors_headers(res);
             std::cout << "Received request: " << req.body << std::endl;
-
+            nlohmann::json json_response;
             auto it = req.headers.find("Authorization");
             if (it == req.headers.end() || it->second.substr(0, 7) != "Bearer ") {
                 res.status = 401;
-                res.set_content("Missing or invalid Bearer token.", "text/plain");
+                json_response["error"] = "Missing or invalid Bearer token.";
+                res.set_content(json_response.dump(), "application/json");
                 return;
             }
 
             std::string token = it->second.substr(7);
             if (!validate_jwt(token)) {
                 res.status = 401;
-                res.set_content("Invalid Bearer token.", "text/plain");
+                json_response["error"] = "Invalid Bearer token.";
+                res.set_content(json_response.dump(), "application/json");
                 return;
             }
 
             auto json_request = nlohmann::json::parse(req.body);
             if (!json_request.is_object()) {
                 res.status = 400;
-                res.set_content("Invalid JSON request body.", "text/plain");
+                json_response["error"] = "Invalid JSON request body.";
+                res.set_content(json_response.dump(), "application/json");
                 return;
             }
 
             if (json_request.find("input") == json_request.end()) {
                 res.status = 400;
-                res.set_content("Missing 'input' field in JSON request body.", "text/plain");
+                json_response["error"] = "Missing 'input' field in JSON request body.";
+                res.set_content(json_response.dump(), "application/json");
                 return;
             }
             std::string input = json_request["input"];
 
             if (json_request.find("instruction") == json_request.end()) {
                 res.status = 400;
-                res.set_content("Missing 'instruction' field in JSON request body.", "text/plain");
+                json_response["error"] = "Missing 'instruction' field in JSON request body.";
+                res.set_content(json_response.dump(), "application/json");
                 return;
             }
             std::string instruction = json_request["instruction"];
 
             if (json_request.find("top_k") == json_request.end() || !json_request["top_k"].is_number_integer()) {
                 res.status = 400;
-                res.set_content("Invalid or missing 'top_k' field in JSON request body.", "text/plain");
+                json_response["error"] = "Invalid or missing 'top_k' field in JSON request body.";
+                res.set_content(json_response.dump(), "application/json");
                 return;
             }
             int32_t top_k = json_request["top_k"];
 
             if (json_request.find("top_p") == json_request.end() || !json_request["top_p"].is_number()) {
                 res.status = 400;
-                res.set_content("Invalid or missing 'top_p' field in JSON request body.", "text/plain");
+                json_response["error"] = "Invalid or missing 'top_p' field in JSON request body.";
+                res.set_content(json_response.dump(), "application/json");
                 return;
             }
             float top_p = json_request["top_p"];
 
             if (json_request.find("temperature") == json_request.end() || !json_request["temperature"].is_number()) {
                 res.status = 400;
-                res.set_content("Invalid or missing 'temperature' field in JSON request body.", "text/plain");
+                json_response["error"] = "Invalid or missing 'temperature' field in JSON request body.";
+                res.set_content(json_response.dump(), "application/json");
                 return;
             }
             float temp = json_request["temperature"];
@@ -1114,7 +1140,6 @@ int main(int argc, char *argv[]) {
 
             std::tuple<std::string, std::string, std::string> output = process_input(input, instruction, top_k, top_p, temp, gpt_model_data.model,gpt_model_data.vocab, gpt_model_data.params, gpt_model_data.rng, web);
 
-            nlohmann::json json_response;
             json_response["response"] = std::get<0>(output);
             json_response["source"] = std::get<1>(output);
             json_response["url"] = std::get<2>(output);
