@@ -113,21 +113,24 @@ struct GptModelData {
     llama_model model;
 };
 
-std::tuple<std::string, std::string, std::string, std::string> read_db_config(const std::string& file_path) {
+std::tuple<std::string, std::string, std::string, std::string> read_config(const std::string& file_path) {
     std::ifstream config_file(file_path);
 
     if (!config_file.is_open()) {
         throw std::runtime_error("Could not open the configuration file");
     }
 
-    std::string host, user, password, schema;
+    std::string host, user, password, schema, secret;
     std::getline(config_file, host);
     std::getline(config_file, user);
     std::getline(config_file, password);
     std::getline(config_file, schema);
+    std::getLine(config_file, secret);
 
-    return std::make_tuple(host, user, password, schema);
+    return std::make_tuple(host, user, password, schema, secret);
 }
+
+auto [host, user, password, schema, secret] = read_config("db_config.txt");
 
 // load the model's weights from a file
 bool llama_model_load(const std::string & fname, llama_model & model, gpt_vocab & vocab, int n_ctx) {
@@ -1000,7 +1003,7 @@ GptModelData initialize_model(int argc, char *argv[]) {
 }
 
 std::string generate_jwt(const std::string& email) {
-    auto key = "this is secret we should not share with anyone because it is a secret that we should not share with anyone";
+    auto key = secret;
     auto token = jwt::create()
         .set_issuer("alpacaLLama")
         .set_subject(email)
@@ -1024,7 +1027,7 @@ bool validate_jwt(const std::string& jwt) {
         }
 
         jwt::verify()
-            .allow_algorithm(jwt::algorithm::hs256{ "this is secret we should not share with anyone because it is a secret that we should not share with anyone"})
+            .allow_algorithm(jwt::algorithm::hs256{ secret })
             .with_issuer("alpacaLLama")
             .verify(decoded_token);
 
@@ -1053,7 +1056,6 @@ int main(int argc, char *argv[]) {
         sql::Connection *con;
 
         driver = get_driver_instance();
-        auto [host, user, password, schema] = read_db_config("db_config.txt");
         con = driver->connect(host, user, password);
         con->setSchema(schema);
 
