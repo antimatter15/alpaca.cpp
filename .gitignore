@@ -39,6 +39,5 @@ CMakeCache.txt
 json/
 cpp-httplib/
 jwt-cpp/
-sqlite_modern_cpp/
 config.txt
 add_users
