@@ -12,11 +12,20 @@ Get the dependencies:
 https://github.com/yhirose/cpp-httplib/
 https://github.com/nlohmann/json/
 
+create config.txt at the root of the project and add :
+
+your db host
+your db username
+your db password
+your issuer
+your secret passphrase for JWT token
+
 ```sh
 git clone https://github.com/innermost47/alpacaLLama
 cd alpacaLLama
 
 make chat
+./add_users
 ./chat
 ```
 
@@ -81,7 +90,7 @@ torrent: https://torrage.info/torrent.php?h=053b3d54d2e77ff020ebddf51dad681f2a65
 ## Credit
 
 This combines [Facebook's LLaMA](https://github.com/facebookresearch/llama), [Stanford Alpaca](https://crfm.stanford.edu/2023/03/13/alpaca.html), [alpaca-lora](https://github.com/tloen/alpaca-lora) and [corresponding weights](https://huggingface.co/tloen/alpaca-lora-7b/tree/main) by Eric Wang (which uses [Jason Phang's implementation of LLaMA](https://github.com/huggingface/transformers/pull/21955) on top of Hugging Face Transformers), and [llama.cpp](https://github.com/ggerganov/llama.cpp) by Georgi Gerganov. The chat implementation is based on Matvey Soloviev's [Interactive Mode](https://github.com/ggerganov/llama.cpp/pull/61) for llama.cpp. Inspired by [Simon Willison's](https://til.simonwillison.net/llms/llama-7b-m2) getting started guide for LLaMA. [Andy Matuschak](https://twitter.com/andy_matuschak/status/1636769182066053120)'s thread on adapting this to 13B, using fine tuning weights by [Sam Witteveen](https://huggingface.co/samwit/alpaca13B-lora).
-Project forked in https://github.com/antimatter15/alpaca.cpp
+Project forked in https://github.com/antimatter15/alpaca.cpp - thank you antimatter15.
 
 ## Disclaimer
 

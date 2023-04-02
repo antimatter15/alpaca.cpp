@@ -181,7 +181,7 @@ $(info I CC:       $(CCV))
 $(info I CXX:      $(CXXV))
 $(info )
 
-default: chat quantize
+default: chat quantize add_users
 
 #
 # Build library
@@ -194,10 +194,10 @@ utils.o: utils.cpp utils.h
 	$(CXX) $(CXXFLAGS) -c utils.cpp -o utils.o
 
 clean:
-	rm -f *.o main quantize
+	rm -f *.o chat quantize add_users
 
-add_users: add_users.cpp
-	$(CXX) $(CXXFLAGS) -c add_users.cpp -o utils.o add_users $(LDFLAGS)
+add_users: add_users.cpp utils.o
+	$(CXX) $(CXXFLAGS) -o add_users add_users.cpp utils.o $(LDFLAGS)
 
 chat: chat.cpp ggml.o utils.o
 	$(CXX) $(CXXFLAGS) chat.cpp ggml.o utils.o -o chat $(LDFLAGS)

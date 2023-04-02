@@ -10,6 +10,7 @@
 #include <stdexcept>
 #include <tuple>
 #include "utils.h"
+#include <termios.h>
 
 std::string host, user, password, schema, secret;
 
@@ -22,16 +23,46 @@ std::string hashPassword(const std::string& password) {
     char hash[HASH_LEN];
 
     if (crypto_pwhash_str(
-        hash,                  // buffer to store hash
-        password.c_str(),      // password to hash
-        password.length(),     // length of password
-        crypto_pwhash_OPSLIMIT_INTERACTIVE,  // computational cost
-        crypto_pwhash_MEMLIMIT_INTERACTIVE   // memory cost
+        hash,                 
+        password.c_str(),     
+        password.length(),    
+        crypto_pwhash_OPSLIMIT_INTERACTIVE,  
+        crypto_pwhash_MEMLIMIT_INTERACTIVE   
     ) != 0) {
         throw std::runtime_error("Password hashing failed.");
     }
 
     return std::string(hash);
+}
+
+bool emailExists(sql::Connection* con, const std::string& email) {
+    std::unique_ptr<sql::PreparedStatement> stmt(con->prepareStatement("SELECT COUNT(*) FROM users WHERE email = ?"));
+    stmt->setString(1, email);
+
+    std::unique_ptr<sql::ResultSet> res(stmt->executeQuery());
+
+    res->next();
+    return res->getInt(1) > 0;
+}
+
+std::string read_password() {
+    termios oldt, newt;
+    std::string password;
+
+    // Turn off echoing of characters on the terminal
+    tcgetattr(STDIN_FILENO, &oldt);
+    newt = oldt;
+    newt.c_lflag &= ~ECHO;
+    tcsetattr(STDIN_FILENO, TCSANOW, &newt);
+
+    // Read the password
+    std::cin >> password;
+
+    // Restore the terminal settings
+    tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
+    std::cout << std::endl;
+
+    return password;
 }
 
 int main() {
@@ -41,19 +72,22 @@ int main() {
     con->setSchema(schema);
 
     std::string email, password;
-    std::cout << "Veuillez saisir l'email de l'utilisateur : ";
+    std::cout << "Please enter the user's email: ";
     std::cin >> email;
-    std::cout << "Veuillez saisir le mot de passe de l'utilisateur : ";
-    std::cin >> password;
+    while (emailExists(con.get(), email)) {
+        std::cout << "This email is already taken. Please enter a new email: ";
+        std::cin >> email;
+    }
+
+    std::cout << "Please enter the user's password: ";
+    password = read_password();
 
     std::unique_ptr<sql::PreparedStatement> stmt(con->prepareStatement("INSERT INTO users (email, password) VALUES (?, ?)"));
     stmt->setString(1, email);
     stmt->setString(2, hashPassword(password));
     stmt->execute();
 
-    std::cout << "Utilisateur ajouté avec succès !" << std::endl;
-
-    delete raw_driver;
-
+    std::cout << "User added successfully!" << std::endl;
+    
     return 0;
 }
