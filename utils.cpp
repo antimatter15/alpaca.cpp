@@ -8,6 +8,9 @@
 #include <iterator>
 #include <string>
 #include <math.h>
+#include <iostream>
+#include <fstream>
+#include <stdexcept>
 
  #if defined(_MSC_VER) || defined(__MINGW32__)
  #include <malloc.h> // using malloc.h with MSC/MINGW
@@ -561,4 +564,21 @@ size_t ggml_quantize_q4_1(float * src, void * dst, int n, int k, int qk, int64_t
     }
 
     return (n/k)*row_size;
+}
+
+std::tuple<std::string, std::string, std::string, std::string, std::string> read_config(const std::string& file_path) {
+    std::ifstream config_file(file_path);
+
+    if (!config_file.is_open()) {
+        throw std::runtime_error("Could not open the configuration file");
+    }
+
+    std::string host, user, password, schema, secret;
+    std::getline(config_file, host);
+    std::getline(config_file, user);
+    std::getline(config_file, password);
+    std::getline(config_file, schema);
+    std::getline(config_file, secret);
+
+    return std::make_tuple(host, user, password, schema, secret);
 }

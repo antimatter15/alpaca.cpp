@@ -48,6 +48,8 @@
 
 using namespace httplib;
 
+std::string host, user, password, schema, secret;
+
 // determine number of model parts based on the dimension
 static const std::map<int, int> LLAMA_N_PARTS = {
     { 4096, 1 },
@@ -112,25 +114,6 @@ struct GptModelData {
     gpt_vocab vocab;
     llama_model model;
 };
-
-std::tuple<std::string, std::string, std::string, std::string> read_config(const std::string& file_path) {
-    std::ifstream config_file(file_path);
-
-    if (!config_file.is_open()) {
-        throw std::runtime_error("Could not open the configuration file");
-    }
-
-    std::string host, user, password, schema, secret;
-    std::getline(config_file, host);
-    std::getline(config_file, user);
-    std::getline(config_file, password);
-    std::getline(config_file, schema);
-    std::getLine(config_file, secret);
-
-    return std::make_tuple(host, user, password, schema, secret);
-}
-
-auto [host, user, password, schema, secret] = read_config("db_config.txt");
 
 // load the model's weights from a file
 bool llama_model_load(const std::string & fname, llama_model & model, gpt_vocab & vocab, int n_ctx) {
@@ -1003,6 +986,7 @@ GptModelData initialize_model(int argc, char *argv[]) {
 }
 
 std::string generate_jwt(const std::string& email) {
+    std::tie(host, user, password, schema, secret) = read_config("config.txt");
     auto key = secret;
     auto token = jwt::create()
         .set_issuer("alpacaLLama")
@@ -1014,6 +998,7 @@ std::string generate_jwt(const std::string& email) {
 }
 
 bool validate_jwt(const std::string& jwt) {
+    std::tie(host, user, password, schema, secret) = read_config("config.txt");
     try {
         auto decoded_token = jwt::decode(jwt);
         if (decoded_token.get_issuer() != "alpacaLLama") {
@@ -1050,6 +1035,7 @@ int main(int argc, char *argv[]) {
     Server svr;
 
     GptModelData gpt_model_data = initialize_model(argc, argv);
+    std::tie(host, user, password, schema, secret) = read_config("config.txt");
 
     try {
         sql::Driver *driver;

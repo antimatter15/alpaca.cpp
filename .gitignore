@@ -40,4 +40,4 @@ json/
 cpp-httplib/
 jwt-cpp/
 sqlite_modern_cpp/
-db_config.txt
+config.txt

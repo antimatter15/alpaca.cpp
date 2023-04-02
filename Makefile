@@ -196,6 +196,9 @@ utils.o: utils.cpp utils.h
 clean:
 	rm -f *.o main quantize
 
+add_users: add_users.cpp
+	$(CXX) $(CXXFLAGS) -c add_users.cpp -o utils.o add_users $(LDFLAGS)
+
 chat: chat.cpp ggml.o utils.o
 	$(CXX) $(CXXFLAGS) chat.cpp ggml.o utils.o -o chat $(LDFLAGS)
 
