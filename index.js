@@ -78,17 +78,32 @@ document
     })
       .then((response) => response.json())
       .then((data) => {
-        document.getElementById("submit").classList.remove("d-none");
-        document.getElementById("spinner").classList.add("d-none");
-        if (web) {
-          displayChatMessage(data.response, "response-message", {
-            url: data.url,
-            source: data.source,
-          });
+        if (data.error) {
+          document.getElementById("spinner").classList.add("d-none");
+          document.getElementById("submit").classList.remove("d-none");
+          document.getElementById("errorModalText").innerText = data.error;
+          const errorModal = new bootstrap.Modal(
+            document.getElementById("errorModal")
+          );
+          errorModal.show();
+          if (localStorage.getItem("jwt_token")) {
+            localStorage.removeItem("jwt_token");
+            document.getElementById("main-container").style.display = "none";
+            document.getElementById("login-container").style.display = "block";
+          }
         } else {
-          displayChatMessage(data.response, "response-message");
+          document.getElementById("submit").classList.remove("d-none");
+          document.getElementById("spinner").classList.add("d-none");
+          if (web) {
+            displayChatMessage(data.response, "response-message", {
+              url: data.url,
+              source: data.source,
+            });
+          } else {
+            displayChatMessage(data.response, "response-message");
+          }
+          saveConversation();
         }
-        saveConversation();
       })
       .catch((error) => {
         // Hide spinner
@@ -151,24 +166,24 @@ function loginUser(email, password) {
   })
     .then((response) => response.json())
     .then((data) => {
-    	if(data.error) {
-            document.getElementById("errorModalText").innerText = data.error;
-            const errorModal = new bootstrap.Modal(
-              document.getElementById("errorModal")
-            );
-            errorModal.show();
-    	} else {
-            document.getElementById("login-container").style.display = "none";
-            document.getElementById("main-container").style.display = "block";
-            localStorage.setItem("jwt_token", data.token);
-        }
-    })
-    .catch((error) => {
-        document.getElementById("errorModalText").innerText = error.error;
+      if (data.error) {
+        document.getElementById("errorModalText").innerText = data.error;
         const errorModal = new bootstrap.Modal(
           document.getElementById("errorModal")
         );
         errorModal.show();
+      } else {
+        document.getElementById("login-container").style.display = "none";
+        document.getElementById("main-container").style.display = "block";
+        localStorage.setItem("jwt_token", data.token);
+      }
+    })
+    .catch((error) => {
+      document.getElementById("errorModalText").innerText = error.error;
+      const errorModal = new bootstrap.Modal(
+        document.getElementById("errorModal")
+      );
+      errorModal.show();
     });
 }
 
@@ -181,6 +196,6 @@ document.getElementById("logout-button").addEventListener("click", function () {
 });
 
 if (localStorage.getItem("jwt_token")) {
-    document.getElementById("main-container").style.display = "block";
-    document.getElementById("login-container").style.display = "none";
+  document.getElementById("main-container").style.display = "block";
+  document.getElementById("login-container").style.display = "none";
 }
