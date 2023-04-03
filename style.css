@@ -1,0 +1,51 @@
+.logo {
+  width: 60px;
+}
+
+.chat-container {
+  background-color: #f8f8f8;
+  border: 1px solid #e1e1e1;
+  border-radius: 8px;
+  max-height: 400px;
+  overflow-y: auto;
+  padding: 16px;
+}
+
+.chat-messages {
+  list-style: none;
+  padding-left: 0;
+}
+
+.chat-message {
+  border-radius: 12px;
+  line-height: 1.4;
+  margin-bottom: 8px;
+  max-width: 80%;
+  padding: 8px 12px;
+}
+
+.user-message {
+  background-color: #007bff;
+  color: #ffffff;
+  float: right;
+  clear: both;
+}
+
+.response-message {
+  background-color: #1300ff;
+  color: #ffffff;
+  float: left;
+  clear: both;
+}
+
+.delete-button {
+  background-color: transparent;
+  border: none;
+  color: #fff;
+  cursor: pointer;
+  opacity: 1;
+}
+
+.chat-message:hover .delete-button {
+  opacity: 1;
+}

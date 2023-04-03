@@ -1,3 +1,5 @@
+PROJECT_DIR := $(shell pwd)
+
 ifndef UNAME_S
 UNAME_S := $(shell uname -s)
 endif
@@ -32,7 +34,10 @@ endif
 
 CFLAGS   = -I.              -O3 -DNDEBUG -std=c11   -fPIC
 CXXFLAGS = -I. -I./examples -O3 -DNDEBUG -std=c++11 -fPIC
-LDFLAGS  =
+CXXFLAGS += -I$(PROJECT_DIR)/json/include -std=c++11
+CXXFLAGS += -I$(PROJECT_DIR)/cpp-httplib -std=c++11
+CXXFLAGS += -I$(PROJECT_DIR)/jwt-cpp/include -std=c++11
+LDFLAGS  = -lcurl -lmysqlcppconn -lcrypto -lsodium
 
 # OS specific
 # TODO: support Windows
@@ -176,7 +181,7 @@ $(info I CC:       $(CCV))
 $(info I CXX:      $(CXXV))
 $(info )
 
-default: chat quantize
+default: chat quantize add_users
 
 #
 # Build library
@@ -189,7 +194,10 @@ utils.o: utils.cpp utils.h
 	$(CXX) $(CXXFLAGS) -c utils.cpp -o utils.o
 
 clean:
-	rm -f *.o main quantize
+	rm -f *.o chat quantize add_users
+
+add_users: add_users.cpp utils.o
+	$(CXX) $(CXXFLAGS) -o add_users add_users.cpp utils.o $(LDFLAGS)
 
 chat: chat.cpp ggml.o utils.o
 	$(CXX) $(CXXFLAGS) chat.cpp ggml.o utils.o -o chat $(LDFLAGS)

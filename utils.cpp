@@ -8,6 +8,9 @@
 #include <iterator>
 #include <string>
 #include <math.h>
+#include <iostream>
+#include <fstream>
+#include <stdexcept>
 
  #if defined(_MSC_VER) || defined(__MINGW32__)
  #include <malloc.h> // using malloc.h with MSC/MINGW
@@ -277,7 +280,6 @@ std::vector<gpt_vocab::id> gpt_tokenize(const gpt_vocab & vocab, const std::stri
 
 // TODO: Calculate this constant from the vocabulary
 #define MAX_TOKEN_LEN 18
-// SentencePiece implementation after https://guillaume-be.github.io/2020-05-30/sentence_piece
 std::vector<gpt_vocab::id> llama_tokenize(const gpt_vocab & vocab, const std::string & text, bool bos) {
     std::vector<gpt_vocab::id> res;
     std::vector<int> score;
@@ -289,8 +291,8 @@ std::vector<gpt_vocab::id> llama_tokenize(const gpt_vocab & vocab, const std::st
 
     // Forward pass
     for (int i = 0; i < len; i++) {
-        int max_len = std::min(len - i, MAX_TOKEN_LEN);
-        for (int sub_len = 1; sub_len <= len - i; sub_len++) {
+        int max_len = std::min(len - i, 30);
+        for (int sub_len = 1; sub_len <= max_len; sub_len++) {
             auto sub = text.substr(i, sub_len);
             auto token = vocab.token_to_id.find(sub);
             if (token != vocab.token_to_id.end()) {
@@ -305,29 +307,31 @@ std::vector<gpt_vocab::id> llama_tokenize(const gpt_vocab & vocab, const std::st
         }
     }
 
-    // Backward pass
     int i = len;
     while (i > 0) {
         gpt_vocab::id token_id = prev[i];
         if (token_id == 0) {
-	    // TODO: Return error or something more meaningful
-            printf("failed to tokenize string!\n");
+             printf("failed to find token\n");
 	    break;
         }
         res.push_back(token_id);
-        auto token = (*vocab.id_to_token.find(token_id)).second;
-        i -= token.length();
+        auto token = vocab.id_to_token.find(token_id);
+        if (token == vocab.id_to_token.end()) {
+            printf("failed to find token ID %d!\n", token_id);
+            break;
+        }
+        i -= (*token).second.length();
     }
 
     if (bos) {
-        res.push_back(1); // TODO: replace with vocab.bos
+        res.push_back(1);
     }
 
-    // Pieces are in reverse order so correct that
     std::reverse(res.begin(), res.end());
 
     return res;
 }
+
 
 bool gpt_vocab_init(const std::string & fname, gpt_vocab & vocab) {
     printf("%s: loading vocab from '%s'\n", __func__, fname.c_str());
@@ -560,4 +564,21 @@ size_t ggml_quantize_q4_1(float * src, void * dst, int n, int k, int qk, int64_t
     }
 
     return (n/k)*row_size;
+}
+
+std::tuple<std::string, std::string, std::string, std::string, std::string> read_config(const std::string& file_path) {
+    std::ifstream config_file(file_path);
+
+    if (!config_file.is_open()) {
+        throw std::runtime_error("Could not open the configuration file");
+    }
+
+    std::string host, user, password, schema, secret;
+    std::getline(config_file, host);
+    std::getline(config_file, user);
+    std::getline(config_file, password);
+    std::getline(config_file, schema);
+    std::getline(config_file, secret);
+
+    return std::make_tuple(host, user, password, schema, secret);
 }

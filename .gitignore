@@ -36,3 +36,8 @@ Release/
 CMakeFiles/
 CMakeCache.txt
 *.dir/
+json/
+cpp-httplib/
+jwt-cpp/
+config.txt
+add_users
