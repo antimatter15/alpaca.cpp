@@ -318,7 +318,7 @@ bool llama_model_load(const std::string & fname, llama_model & model, gpt_vocab 
     fin.close();
 
     std::vector<uint8_t> tmp;
-    
+
     for (int i = 0; i < n_parts; ++i) {
         const int part_id = i;
         //const int part_id = n_parts - i - 1;
@@ -823,7 +823,7 @@ int main(int argc, char ** argv) {
     // load the model
     {
         const int64_t t_start_us = ggml_time_us();
-        if (!llama_model_load(params.model, model, vocab, params.n_ctx)) {  
+        if (!llama_model_load(params.model, model, vocab, params.n_ctx)) {
             fprintf(stderr, "%s: failed to load model from '%s'\n", __func__, params.model.c_str());
             return 1;
         }
@@ -944,7 +944,7 @@ int main(int argc, char ** argv) {
         printf(ANSI_COLOR_YELLOW);
     }
 
-    
+
 
     while (remaining_tokens > 0) {
         // predict
@@ -1033,7 +1033,7 @@ int main(int argc, char ** argv) {
                 // embd_inp.erase(embd_inp.begin());
                 input_consumed = embd_inp.size();
                 embd_inp.insert(embd_inp.end(), prompt_inp.begin(), prompt_inp.end());
-                
+
 
                 printf("\n> ");
 
@@ -1063,11 +1063,15 @@ int main(int argc, char ** argv) {
 
                     std::vector<gpt_vocab::id> line_inp = ::llama_tokenize(vocab, buf, false);
                     embd_inp.insert(embd_inp.end(), line_inp.begin(), line_inp.end());
-                    embd_inp.insert(embd_inp.end(), response_inp.begin(), response_inp.end());
+                    // Add response prompt if last line
+                    if (!another_line) {
+                        embd_inp.insert(embd_inp.end(), response_inp.begin(), response_inp.end());
+                    }
 
                     remaining_tokens -= prompt_inp.size() + line_inp.size() + response_inp.size();
 
                     input_noecho = true; // do not echo this again
+
                 }
 
                 is_interacting = false;
