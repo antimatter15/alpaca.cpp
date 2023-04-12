@@ -1,0 +1,6 @@
+*.a
+*.o
+chat
+quantize
+Dockerfile
+.git*
