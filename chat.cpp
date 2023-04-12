@@ -38,7 +38,7 @@ static const std::map<int, int> LLAMA_N_PARTS = {
 
 // default hparams (LLaMA 7B)
 struct llama_hparams {
-    int32_t n_vocab = 32000;
+    int32_t n_vocab = 32001;
     int32_t n_ctx   = 512;   // this is provided as user input?
     int32_t n_embd  = 4096;
     int32_t n_mult  = 256;
@@ -153,7 +153,7 @@ bool llama_model_load(const std::string & fname, llama_model & model, gpt_vocab 
         }
 
         std::string word;
-        for (int i = 0; i < n_vocab; i++) {
+        for (int i = 0; i < n_vocab - 1; i++) {
             uint32_t len;
             fin.read((char *) &len, sizeof(len));
 
@@ -167,6 +167,8 @@ bool llama_model_load(const std::string & fname, llama_model & model, gpt_vocab 
             //    fprintf(stderr, "%s: vocab[%d] = '%s'\n", __func__, i, word.c_str());
             //}
         }
+        vocab.token_to_id["<pad>"] = n_vocab - 1;
+        vocab.id_to_token[n_vocab - 1] = "<pad>";
     }
 
     // for the big tensors, we have the option to store the data in 16-bit floats or quantized
