@@ -16,6 +16,6 @@ FROM gcc
 
 LABEL org.opencontainers.image.authors="kayvan.sylvan@gmail.com"
 
-COPY --from=build /usr/src/chat /usr/src/quantize /usr/local/bin
+COPY --from=build /usr/src/chat /usr/src/quantize /usr/local/bin/
 
 ENTRYPOINT [ "/usr/local/bin/chat" ]
