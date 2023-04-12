@@ -212,3 +212,15 @@ quantize: quantize.cpp ggml.o utils.o
 .PHONY: tests
 tests:
 	bash ./tests/run-tests.sh
+
+.PHONY: docker
+# If using containerd, you can do:
+# make DOCKER_CLI=nerdctl docker
+DOCKER_CLI=docker
+UNAME_P ?= $(shell uname -p)
+UNAME_M ?= $(shell uname -m)
+DOCKER_CLI ?= docker
+IMAGE_NAME=alpaca.cpp
+docker:
+	${DOCKER_CLI} build --build-arg UNAME_P=${UNAME_P} \
+		--build-arg UNAME_M=${UNAME_M} -t ${IMAGE_NAME} .
