@@ -8,11 +8,16 @@ Run a fast ChatGPT-like model locally on your device. The screencast below is no
 
 This combines the [LLaMA foundation model](https://github.com/facebookresearch/llama) with an [open reproduction](https://github.com/tloen/alpaca-lora) of [Stanford Alpaca](https://github.com/tatsu-lab/stanford_alpaca) a fine-tuning of the base model to obey instructions (akin to the [RLHF](https://huggingface.co/blog/rlhf) used to train ChatGPT) and a set of modifications to [llama.cpp](https://github.com/ggerganov/llama.cpp) to add a chat interface. 
 
+
+## Consider using LLaMA.cpp instead
+
+The changes from alpaca.cpp have since been upstreamed in [llama.cpp](https://github.com/ggerganov/llama.cpp).
+
 ## Get Started (7B)
 
 Download the zip file corresponding to your operating system from the [latest release](https://github.com/antimatter15/alpaca.cpp/releases/latest). On Windows, download `alpaca-win.zip`, on Mac (both Intel or ARM) download `alpaca-mac.zip`, and on Linux (x64) download `alpaca-linux.zip`. 
 
-Download `ggml-alpaca-7b-q4.bin` and place it in the same folder as the `chat` executable in the zip file. There are several options: 
+Download  [ggml-alpaca-7b-q4.bin](https://huggingface.co/Sosaka/Alpaca-native-4bit-ggml/blob/main/ggml-alpaca-7b-q4.bin) and place it in the same folder as the `chat` executable in the zip file. There are several options: 
 
 * download [ggml-model-q4_0.bin](https://huggingface.co/Pi3141/alpaca-7B-ggml/blob/main/ggml-model-q4_0.bin) and rename the resulting file to `ggml-alpaca-7b-q4.bin`
 
