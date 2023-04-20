@@ -554,6 +554,11 @@ bool llama_eval(
     // static size_t buf_size = hparams.n_ctx*1024*1024;
     static size_t buf_size = 512u*1024*1024;
     static void * buf = malloc(buf_size);
+    
+    if (buf == nullptr) {
+        fprintf(stderr, "%s: failed to allocate %zu bytes\n", __func__, buf_size);
+        return false;
+    }
 
     if (mem_per_token > 0 && mem_per_token*N > buf_size) {
         const size_t buf_size_new = 1.1*(mem_per_token*N); // add 10% to account for ggml object overhead
